@@ -101,6 +101,80 @@ namespace DemonGameRules.code
             // 不调用 EnableRandomGain => 不会进随机池，但脚本 addTrait 仍然可用
 
             AssetManager.traits.add(ascended_demon);
+
+            // ====== 凡躯砺炼 ======
+            var first_blood = CreateTrait("first_blood", "trait/first_blood", "mortal_coil_group");
+            first_blood.rarity = Rarity.R1_Common;
+            ForbidManualGive(first_blood);
+            AssetManager.traits.add(first_blood);
+
+            var hundred_souls = CreateTrait("hundred_souls", "trait/hundred_souls", "mortal_coil_group");
+            hundred_souls.rarity = Rarity.R2_Uncommon;
+            ForbidManualGive(hundred_souls);
+            AssetManager.traits.add(hundred_souls);
+
+            var thousand_kill = CreateTrait("thousand_kill", "trait/thousand_kill", "mortal_coil_group");
+            thousand_kill.rarity = Rarity.R3_Legendary;
+            ForbidManualGive(thousand_kill);
+            AssetManager.traits.add(thousand_kill);
+
+            // ====== 天命昭示 ======
+            var chosen_of_providence = CreateTrait("chosen_of_providence", "trait/chosen_of_providence", "destiny_group");
+            chosen_of_providence.rarity = Rarity.R3_Legendary;
+            ForbidManualGive(chosen_of_providence);
+            AssetManager.traits.add(chosen_of_providence);
+
+            var whispers_from_the_abyss = CreateTrait("whispers_from_the_abyss", "trait/whispers_from_the_abyss", "destiny_group");
+            whispers_from_the_abyss.rarity = Rarity.R3_Legendary;
+            ForbidManualGive(whispers_from_the_abyss);
+            AssetManager.traits.add(whispers_from_the_abyss);
+
+            var path_of_battle = CreateTrait("path_of_battle", "trait/path_of_battle", "destiny_group");
+            path_of_battle.rarity = Rarity.R3_Legendary;
+            ForbidManualGive(path_of_battle);
+            AssetManager.traits.add(path_of_battle);
+
+            // ====== 非人之境 ======
+            var ageless = CreateTrait("ageless", "trait/ageless", "beyond_mortality_group");
+            ageless.rarity = Rarity.R3_Legendary;
+            ForbidManualGive(ageless);
+            AssetManager.traits.add(ageless);
+
+            var flesh_of_the_divine = CreateTrait("flesh_of_the_divine", "trait/flesh_of_the_divine", "beyond_mortality_group");
+            flesh_of_the_divine.rarity = Rarity.R3_Legendary;
+            ForbidManualGive(flesh_of_the_divine);
+            AssetManager.traits.add(flesh_of_the_divine);
+
+            var incarnation_of_slaughter = CreateTrait("incarnation_of_slaughter", "trait/incarnation_of_slaughter", "beyond_mortality_group");
+            incarnation_of_slaughter.rarity = Rarity.R3_Legendary;
+            ForbidManualGive(incarnation_of_slaughter);
+            AssetManager.traits.add(incarnation_of_slaughter);
+
+            var world_eater = CreateTrait("world_eater", "trait/world_eater", "beyond_mortality_group");
+            world_eater.rarity = Rarity.R3_Legendary;
+            ForbidManualGive(world_eater);
+            AssetManager.traits.add(world_eater);
+
+            // ====== 终焉归途 ======
+            var ascended_one = CreateTrait("ascended_one", "trait/ascended_one", "end_path_group");
+            ascended_one.rarity = Rarity.R3_Legendary;
+            ForbidManualGive(ascended_one);
+            AssetManager.traits.add(ascended_one);
+
+            var fallen_ascension = CreateTrait("fallen_ascension", "trait/fallen_ascension", "end_path_group");
+            fallen_ascension.rarity = Rarity.R3_Legendary;
+            ForbidManualGive(fallen_ascension);
+            AssetManager.traits.add(fallen_ascension);
+
+            var godslayer = CreateTrait("godslayer", "trait/godslayer", "end_path_group");
+            godslayer.rarity = Rarity.R3_Legendary;
+            ForbidManualGive(godslayer);
+            AssetManager.traits.add(godslayer);
+
+            var eternal_legend = CreateTrait("eternal_legend", "trait/eternal_legend", "end_path_group");
+            eternal_legend.rarity = Rarity.R3_Legendary;
+            ForbidManualGive(eternal_legend);
+            AssetManager.traits.add(eternal_legend);
         }
     }
 }
