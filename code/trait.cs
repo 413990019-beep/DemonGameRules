@@ -103,6 +103,7 @@ namespace DemonGameRules.code
             AssetManager.traits.add(ascended_demon);
 
             // ====== 凡躯砺炼 ======
+            // ====== 凡躯砺炼 ======
             var first_blood = CreateTrait("first_blood", "trait/first_blood", "mortal_coil_group");
             first_blood.rarity = Rarity.R0_Common;
             ForbidManualGive(first_blood);
@@ -112,6 +113,7 @@ namespace DemonGameRules.code
             hundred_souls.rarity = Rarity.R1_Uncommon;
             ForbidManualGive(hundred_souls);
             AssetManager.traits.add(hundred_souls);
+
 
             var thousand_kill = CreateTrait("thousand_kill", "trait/thousand_kill", "mortal_coil_group");
             thousand_kill.rarity = Rarity.R3_Legendary;
