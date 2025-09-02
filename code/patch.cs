@@ -26,6 +26,14 @@ namespace DemonGameRules.code
         private static HashSet<string> deadUnitsByBaseName = new HashSet<string>(); // 统一为HashSet，解决命名冲突
         private static readonly System.Random systemRandom = new System.Random(); // 明确使用System.Random并修改变量名避免混淆
 
+        private const string TRAIT_FIRST_BLOOD = "first_blood";
+        private const string TRAIT_HUNDRED_SOULS = "hundred_souls";
+        private const string TRAIT_THOUSAND_KILL = "thousand_kill";
+        private const string TRAIT_AGELESS = "ageless";
+        private const string TRAIT_FLESH_DIVINE = "flesh_of_the_divine";
+        private const string TRAIT_INCARNATION_SLAUGHTER = "incarnation_of_slaughter";
+        private const string TRAIT_WORLD_EATER = "world_eater";
+
    
 
 
@@ -315,14 +323,36 @@ namespace DemonGameRules.code
             stats["damage"] = newDmg;
             _lastAppliedKills_Dmg[id] = __state.Kills;
             _lastWrittenDamage[id] = newDmg;
+
+            // 6) Achievement traits
+            CheckAchievementTraits(__instance);
         }
 
         #endregion
 
+        private static void CheckAchievementTraits(Actor actor)
+        {
+            if (actor == null || actor.data == null) return;
 
+            int kills = actor.data.kills;
+            float power = traitAction.CalculatePower(actor);
+            int age = actor.getAge();
 
-
-
+            if (kills >= 10 && !actor.hasTrait(TRAIT_FIRST_BLOOD))
+                actor.addTrait(TRAIT_FIRST_BLOOD);
+            if (kills >= 100 && !actor.hasTrait(TRAIT_HUNDRED_SOULS))
+                actor.addTrait(TRAIT_HUNDRED_SOULS);
+            if (kills >= 1000 && !actor.hasTrait(TRAIT_THOUSAND_KILL))
+                actor.addTrait(TRAIT_THOUSAND_KILL);
+            if (age >= 500 && power >= 100000f && !actor.hasTrait(TRAIT_AGELESS))
+                actor.addTrait(TRAIT_AGELESS);
+            if (power >= 100000000f && !actor.hasTrait(TRAIT_FLESH_DIVINE))
+                actor.addTrait(TRAIT_FLESH_DIVINE);
+            if (kills >= 100000 && !actor.hasTrait(TRAIT_INCARNATION_SLAUGHTER))
+                actor.addTrait(TRAIT_INCARNATION_SLAUGHTER);
+            if (actor.hasTrait(TRAIT_FLESH_DIVINE) && actor.hasTrait(TRAIT_INCARNATION_SLAUGHTER) && !actor.hasTrait(TRAIT_WORLD_EATER))
+                actor.addTrait(TRAIT_WORLD_EATER);
+        }
 
         #region 4. 单位死亡时清理属性字典（新增补丁）
         [HarmonyPostfix]
