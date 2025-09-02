@@ -1,0 +1,21 @@
+# .NET / VS
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.log
+*.tmp
+
+# Unity/ModLoader 常见
+Library/
+Temp/
+Logs/
+Build/
+Builds/
+UserSettings/
+
+# 发布物
+dist/
+release/
+*.zip
