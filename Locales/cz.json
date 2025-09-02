@@ -1,0 +1,30 @@
+{
+    "BiaoTi": "排行榜",
+    "DM": "恶魔模式",
+    "DM Description": "切换到恶魔模式或正常模式",
+    "AF": "自动收藏（≥10000战力且上榜）",
+    "AF Description": "开启后符合条件的单位会自动收藏",
+    "Modset": "Mod设置",
+    "WAR_YEARS": "强制宣战间隔（年）",
+    "WAR_YEARS Description": "设置多少年强制爆发一场战争/叛乱（默认30）",
+    "GC_YEARS": "恶魔飞升/大道争锋间隔（年）",
+    "GC_YEARS Description": "设置多少年举办一恶魔飞升次或大道争锋（默认480）",
+    "RESET_LOOP": "世界归零与清图（读档触发一次）",
+    "RESET_LOOP Description": "开=上膛；下次读档/新世界就绪时归零年份并清图，仅此一次并自动卸膛（UI 可能仍显示开但不会再生效）。再次执行：关→开才会生效。关=不干预。",
+    "trait_daozhu": "道主",
+    "trait_daozhu_desc": "大道争锋的执掌者，权威与杀伐并举。",
+    "trait_ascended_demon": "飞升恶魔",
+    "trait_ascended_demon_desc": "历经仪式的恶魔形态，残酷且不朽的意志。",
+    "power_daozhu": "授予：道主",
+    "power_ascended_demon": "授予：飞升恶魔",
+    "DAOZHU_GROUP": "道主",
+    "ASCENDED_DEMON_GROUP": "飞升恶魔",
+    "AUTO_SPAWN": "自动生成生物",
+    "AUTO_SPAWN Description": "开启后，世界会定期自动在地图上生成生物，需要打开世界法则的自动生成动物（默认关闭）。",
+    "WILD_CLEANUP": "野生单位与超级生命清理",
+    "WILD_CLEANUP Description": "默认关闭。开启后：每次年龄更新清除单位的“super_health”特质；对野生王国单位有 10% 概率直接处死。",
+    "STAT_PATCH": "击杀成长属性加成",
+    "STAT_PATCH Description": "开启后：击杀≥10的单位获得每击杀 +100 最大生命与 +2 攻击。默认关闭。"
+
+
+}

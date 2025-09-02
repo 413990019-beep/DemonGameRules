@@ -1,0 +1,76 @@
+{
+    "Modset": [
+        {
+            "Id": "DM",
+            "Type": "SWITCH",
+            "BoolVal": true,
+            "TextVal": "DM",
+            "Tooltip": "DM Description",
+            "Callback": "DemonGameRules2.code.traitAction:OnModeSwitchChanged"
+        },
+        {
+            "Id": "AF",
+            "Type": "SWITCH",
+            "BoolVal": true,
+            "TextVal": "AF",
+            "Tooltip": "AF Description",
+            "Callback": "DemonGameRules2.code.traitAction:OnAutoFavoriteChanged"
+        },
+
+        // === 强制宣战间隔 ===
+        {
+            "Id": "WAR_YEARS",
+            "Type": "SLIDER",
+            "IconPath": "ui/icons/iconWar",
+            "FloatVal": 30.0,
+            "MinFloatVal": 5.0,
+            "MaxFloatVal": 200.0,
+            "Callback": "DemonGameRules2.code.traitAction:OnWarIntervalChanged"
+        },
+
+        // === 大道争锋间隔 ===
+        {
+            "Id": "GC_YEARS",
+            "Type": "SLIDER",
+            "IconPath": "ui/icons/iconWar",
+            "FloatVal": 480.0,
+            "MinFloatVal": 60.0,
+            "MaxFloatVal": 2000.0,
+            "Callback": "DemonGameRules2.code.traitAction:OnGreatContestIntervalChanged"
+        },
+        {
+            "Id": "AUTO_SPAWN",
+            "Type": "SWITCH",
+            "BoolVal": true,
+            "TextVal": "AUTO_SPAWN",
+            "Tooltip": "AUTO_SPAWN Description",
+            "Callback": "DemonGameRules2.code.traitAction:OnAutoSpawnChanged"
+
+        },
+        {
+            "Id": "WILD_CLEANUP",
+            "Type": "SWITCH",
+            "BoolVal": true,
+            "TextVal": "WILD_CLEANUP",
+            "Tooltip": "WILD_CLEANUP Description",
+            "Callback": "DemonGameRules2.code.traitAction:OnWildCleanupChanged"
+        },
+        {
+            "Id": "STAT_PATCH",
+            "Type": "SWITCH",
+            "BoolVal": true,
+            "TextVal": "STAT_PATCH",
+            "Tooltip": "STAT_PATCH Description",
+            "Callback": "DemonGameRules2.code.traitAction:OnStatPatchSwitchChanged"
+        },
+        {
+            "Id": "RESET_LOOP",
+            "Type": "SWITCH",
+            "BoolVal": false,
+            "TextVal": "RESET_LOOP",
+            "Tooltip": "RESET_LOOP Description",
+            "Callback": "DemonGameRules2.code.traitAction:OnResetLoopChanged"
+        }
+
+    ]
+}
