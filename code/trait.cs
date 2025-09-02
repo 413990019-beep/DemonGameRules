@@ -105,12 +105,12 @@ namespace DemonGameRules.code
             // ====== 凡躯砺炼 ======
             // ====== 凡躯砺炼 ======
             var first_blood = CreateTrait("first_blood", "trait/first_blood", "mortal_coil_group");
-            first_blood.rarity = Rarity.R0_Common;
+            first_blood.rarity = Rarity.Common;
             ForbidManualGive(first_blood);
             AssetManager.traits.add(first_blood);
 
             var hundred_souls = CreateTrait("hundred_souls", "trait/hundred_souls", "mortal_coil_group");
-            hundred_souls.rarity = Rarity.R1_Uncommon;
+            hundred_souls.rarity = Rarity.Uncommon;
             ForbidManualGive(hundred_souls);
             AssetManager.traits.add(hundred_souls);
 
@@ -180,3 +180,4 @@ namespace DemonGameRules.code
         }
     }
 }
+
