@@ -534,6 +534,34 @@ namespace DemonGameRules.code
 
             traitAction.TryMarkFavoriteByPower(__instance);
             traitAction.OnActorAgeTick(__instance);
+            // 如果 age 是 float，稳妥点用 (age >= 1f && age < 2f)
+            if (__instance.age == 1)
+            {
+                TryAdd(__instance, "rogue_kill_plus_one", 0.05f);
+                TryAdd(__instance, "rogue_kill_lucky10", 0.03f);
+
+                TryAdd(__instance, "rogue_starter_boost", 0.05f);
+                TryAdd(__instance, "rogue_swift", 0.05f);
+                TryAdd(__instance, "rogue_keen", 0.04f);
+                TryAdd(__instance, "rogue_tough", 0.04f);
+                TryAdd(__instance, "rogue_enduring", 0.05f);
+                TryAdd(__instance, "rogue_longlife", 0.05f);
+                TryAdd(__instance, "rogue_lightstrike", 0.02f);
+                TryAdd(__instance, "rogue_guarded", 0.02f);
+                TryAdd(__instance, "rogue_heal_on_kill", 0.02f);
+            }
+
+            // 小工具：独立概率加特质
+            // 独立概率加特质（0~1）
+            static void TryAdd(Actor a, string traitId, float chance01)
+            {
+                if (a == null || string.IsNullOrEmpty(traitId)) return;
+                if (a.hasTrait(traitId)) return;
+
+                // 用 UnityEngine.Random.value，避免 System.Random 撞名
+                if (UnityEngine.Random.value < UnityEngine.Mathf.Clamp01(chance01))
+                    a.addTrait(traitId);
+            }
 
 
 
