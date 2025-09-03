@@ -1636,29 +1636,17 @@ namespace DemonGameRules2.code
                 $" 已赋予 <5000> 击杀数，若存活至 {EvilRedMageRevertYear} 年将恢复为人类。";
             Debug.Log(log);
             WriteLeaderboardToFile(log + Environment.NewLine);
-            // 使徒本人 + 所在分区单位标记“深渊低语”
+
+            // 只给使徒本人标记“深渊低语”
             try
             {
-                if (!mage.hasTrait("whispers_from_the_abyss")) mage.addTrait("whispers_from_the_abyss");
-
-                var z = spawnTile?.zone;
-                if (z != null)
+                if (mage != null && mage.hasHealth() && !mage.hasTrait("whispers_from_the_abyss"))
                 {
-                    foreach (var u in World.world.units)
-                    {
-                        try
-                        {
-                            if (u != null && u.hasHealth() && u.current_tile != null && u.current_tile.zone == z)
-                            {
-                                if (!u.hasTrait("whispers_from_the_abyss"))
-                                    u.addTrait("whispers_from_the_abyss");
-                            }
-                        }
-                        catch { }
-                    }
+                    mage.addTrait("whispers_from_the_abyss");
                 }
             }
             catch { }
+
 
 
             NotificationHelper.ShowThisMessage(

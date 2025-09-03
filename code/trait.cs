@@ -243,8 +243,8 @@ namespace DemonGameRules.code
             // 深渊低语：很小的通用加成（第一梯队-轻量；区域批量发时避免过猛）
             var whispers_from_the_abyss = CreateTrait("whispers_from_the_abyss", "trait/whispers_from_the_abyss", "destiny_group");
             SetRarityCompat(whispers_from_the_abyss, "legendary");
-            SafeSetStat(whispers_from_the_abyss.base_stats, strings.S.health, 500f);
-            SafeSetStat(whispers_from_the_abyss.base_stats, strings.S.damage, 50f);
+            SafeSetStat(whispers_from_the_abyss.base_stats, strings.S.health, 5000f);
+            SafeSetStat(whispers_from_the_abyss.base_stats, strings.S.damage, 500f);
             SafeSetStat(whispers_from_the_abyss.base_stats, strings.S.speed, 2f);
             SafeSetStat(whispers_from_the_abyss.base_stats, strings.S.stamina, 100f);
             ForbidManualGive(whispers_from_the_abyss);
