@@ -858,7 +858,7 @@ namespace DemonGameRules2.code
                 if (u == null || !u.hasHealth() || u.data == null) continue;
                 string baseName = TrimDeathPrefix(GetBaseName(u.name));
                 float power = CalculatePower(u);
-                if (power > 5000f)
+                if (power > 1000f)
                 {
                     string display = $"{u.name}({u.kingdom?.name ?? "无阵营"})";
                     merged[baseName] = new KeyValuePair<string, float>(display, power);
@@ -869,7 +869,7 @@ namespace DemonGameRules2.code
             {
                 string baseName = kv.Key;
                 float power = kv.Value;
-                if (power <= 5000f) continue;
+                if (power <= 1000f) continue;
 
                 string display = _lastKnownDisplayName.TryGetValue(baseName, out var dn) ? dn : baseName;
                 if (!merged.TryGetValue(baseName, out var exist) || power > exist.Value)
@@ -880,7 +880,7 @@ namespace DemonGameRules2.code
 
             // 生成千年长榜并限制最多50个条目
             var sb = new StringBuilder();
-            sb.AppendLine($"【世界历{worldYear}年】千年长榜（战力＞5000，死活同列）"); // 文案改为“＞”
+            sb.AppendLine($"【世界历{worldYear}年】千年长榜（战力＞1000，死活同列）"); // 文案改为“＞”
             var top50Entries = merged.Values
                                       .OrderByDescending(v => v.Value)           // 按战力排序
                                       .ThenBy(v => v.Key, StringComparer.Ordinal) // 再按名称排序
@@ -1089,7 +1089,7 @@ namespace DemonGameRules2.code
                     .Where(actor => actor != null &&
                                 actor.hasHealth() &&
                                 !actor.name.StartsWith("[死亡]-") &&
-                                CalculatePower(actor) > 500)
+                                CalculatePower(actor) > 50)
                     .OrderByDescending(actor => CalculatePower(actor))
                     .Take(MAX_CONTESTANTS)
                     .ToList();
