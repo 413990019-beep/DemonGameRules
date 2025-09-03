@@ -89,13 +89,6 @@ namespace DemonGameRules.code
             // t.unlocked_with_achievement = true; t.achievement_id = "_mod_lock_only_";
         }
 
-        // —— 规则2：允许随机获得（出生/成长概率），与手动添加解耦 —— 
-        private static void EnableRandomGain(ActorTrait t, int rateBirth = 0, int rateGrow = 0, bool allowMutationBox = false)
-        {
-            t.birth = rateBirth;
-            t.rate_acquire_grow_up = rateGrow;
-            t.is_mutation_box_allowed = allowMutationBox;
-        }
 
         // —— Rarity 兼容解析：不关心是 common/Common/R0_Common —— 
         private static object ParseRarityValue(Type rarityType, string key)
@@ -386,14 +379,14 @@ namespace DemonGameRules.code
             // A. 战场收割者（每次击杀时，额外 +1 击杀数；无面板数值改动）
             var tKillPlusOne = CreateTrait("rogue_kill_plus_one", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tKillPlusOne, "uncommon");
-            EnableRandomGain(tKillPlusOne, rateBirth: 1, rateGrow: 0, allowMutationBox: false); // 出生小概率：1（‰或%由游戏实现决定）
+
             ForbidManualGive(tKillPlusOne);
             AssetManager.traits.add(tKillPlusOne);
 
             // B. 幸运劫掠（击杀时 1% 几率额外 +10 击杀数；无面板数值改动）
             var tLucky10 = CreateTrait("rogue_kill_lucky10", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tLucky10, "uncommon");
-            EnableRandomGain(tLucky10, rateBirth: 1, rateGrow: 0, allowMutationBox: false); // 稀有一些
+
             ForbidManualGive(tLucky10);
             AssetManager.traits.add(tLucky10);
 
@@ -402,7 +395,6 @@ namespace DemonGameRules.code
             SetRarityCompat(tStarter, "uncommon");
             SafeSetStat(tStarter.base_stats, strings.S.damage, 30f);   // 低额外伤害
             SafeSetStat(tStarter.base_stats, strings.S.health, 500f);  // 低额外生命
-            EnableRandomGain(tStarter, rateBirth: 3, rateGrow: 0, allowMutationBox: false);
             ForbidManualGive(tStarter);
             AssetManager.traits.add(tStarter);
 
@@ -410,7 +402,6 @@ namespace DemonGameRules.code
             var tSwift = CreateTrait("rogue_swift", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tSwift, "uncommon");
             SafeSetStat(tSwift.base_stats, strings.S.speed, 5f); // 机动小提升
-            EnableRandomGain(tSwift, rateBirth: 3, rateGrow: 0, allowMutationBox: false);
             ForbidManualGive(tSwift);
             AssetManager.traits.add(tSwift);
 
@@ -418,7 +409,6 @@ namespace DemonGameRules.code
             var tKeen = CreateTrait("rogue_keen", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tKeen, "uncommon");
             SafeSetStat(tKeen.base_stats, strings.S.critical_chance, 0.1f); // 3% 暴击
-            EnableRandomGain(tKeen, rateBirth: 2, rateGrow: 0, allowMutationBox: false);
             ForbidManualGive(tKeen);
             AssetManager.traits.add(tKeen);
 
@@ -426,7 +416,6 @@ namespace DemonGameRules.code
             var tTough = CreateTrait("rogue_tough", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tTough, "uncommon");
             SafeSetStat(tTough.base_stats, strings.S.armor, 8f); // 小护甲
-            EnableRandomGain(tTough, rateBirth: 2, rateGrow: 0, allowMutationBox: false);
             ForbidManualGive(tTough);
             AssetManager.traits.add(tTough);
 
@@ -434,7 +423,6 @@ namespace DemonGameRules.code
             var tEnduring = CreateTrait("rogue_enduring", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tEnduring, "uncommon");
             SafeSetStat(tEnduring.base_stats, strings.S.stamina, 150f); // 续航小提升
-            EnableRandomGain(tEnduring, rateBirth: 3, rateGrow: 0, allowMutationBox: false);
             ForbidManualGive(tEnduring);
             AssetManager.traits.add(tEnduring);
 
@@ -442,7 +430,6 @@ namespace DemonGameRules.code
             var tLonglife = CreateTrait("rogue_longlife", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tLonglife, "uncommon");
             SafeSetStat(tLonglife.base_stats, strings.S.lifespan, 200f); // 有老化系统时起效
-            EnableRandomGain(tLonglife, rateBirth: 3, rateGrow: 0, allowMutationBox: false);
             ForbidManualGive(tLonglife);
             AssetManager.traits.add(tLonglife);
 
@@ -450,7 +437,7 @@ namespace DemonGameRules.code
             var tLightstrike = CreateTrait("rogue_lightstrike", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tLightstrike, "uncommon");
             SafeSetStat(tLightstrike.base_stats, strings.S.damage, 80f); // 稍强于 C，但仍属轻量
-            EnableRandomGain(tLightstrike, rateBirth: 1, rateGrow: 0, allowMutationBox: false); // 稀一点
+
             ForbidManualGive(tLightstrike);
             AssetManager.traits.add(tLightstrike);
 
@@ -458,14 +445,14 @@ namespace DemonGameRules.code
             var tGuarded = CreateTrait("rogue_guarded", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tGuarded, "uncommon");
             SafeSetStat(tGuarded.base_stats, strings.S.health, 1000f); // 小坦克向
-            EnableRandomGain(tGuarded, rateBirth: 1, rateGrow: 0, allowMutationBox: false); // 稀一点
+
             ForbidManualGive(tGuarded);
             AssetManager.traits.add(tGuarded);
 
             // K. 击杀回春（击杀后恢复少量生命；逻辑在击杀回调里）
             var tHealOnKill = CreateTrait("rogue_heal_on_kill", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tHealOnKill, "uncommon");
-            EnableRandomGain(tHealOnKill, rateBirth: 1, rateGrow: 0, allowMutationBox: false); // 稀有一点
+
             ForbidManualGive(tHealOnKill);
             AssetManager.traits.add(tHealOnKill);
 
