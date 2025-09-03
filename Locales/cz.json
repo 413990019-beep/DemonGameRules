@@ -23,7 +23,7 @@
     "DESTINY_GROUP": "天命昭示",
     "BEYOND_MORTALITY_GROUP": "非人之境",
     "END_PATH_GROUP": "终焉归途",
-    "ROGUE_LIGHT_GROUP": "基础",
+    "ROGUE_LIGHT_GROUP": "物品与技能",
 
     "trait_group_daozhu_group": "道主",
     "trait_group_ascended_demon_group": "飞升恶魔",
@@ -31,7 +31,7 @@
     "trait_group_destiny_group": "天命昭示",
     "trait_group_beyond_mortality_group": "非人之境",
     "trait_group_end_path_group": "终焉归途",
-    "trait_group_rogue_light_group": "基础",
+    "trait_group_rogue_light_group": "物品与技能",
 
     "power_daozhu": "授予：道主",
     "power_ascended_demon": "授予：飞升恶魔",

@@ -15,12 +15,37 @@ namespace DemonGameRules.code
 
         // 按特质覆写：填了就无视全局兜底（留给你日后逐个替换）
         // 示例：{"hundred_souls":"trait/hundred_souls"} 一旦填上就会生效
-        private static readonly Dictionary<string, string> ICON_OVERRIDE = new Dictionary<string, string>()
-        {
-            // {"daozhu", "trait/daozhu"},               // 演示：可不填，默认就是道主
-            // {"hundred_souls", "trait/hundred_souls"}, // 以后你要逐步替换就往这塞
-            // {"world_eater", "trait/world_eater"},
-        };
+        private static readonly Dictionary<string, string> ICON_OVERRIDE =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["ageless"] = "trait/ageless",
+                ["daozhu"] = "trait/daozhu",
+                ["ascended_demon"] = "trait/ascended_demon",
+                ["ascended_one"] = "trait/ascended_one",
+                ["chosen_of_providence"] = "trait/chosen_of_providence",
+                ["eternal_legend"] = "trait/eternal_legend",
+                ["fallen_ascension"] = "trait/fallen_ascension",
+                ["first_blood"] = "trait/first_blood",
+                ["flesh_of_the_divine"] = "trait/flesh_of_the_divine",
+                ["godslayer"] = "trait/godslayer",
+                ["hundred_souls"] = "trait/hundred_souls",
+                ["incarnation_of_slaughter"] = "trait/incarnation_of_slaughter",
+                ["path_of_battle"] = "trait/path_of_battle",
+                ["rogue_enduring"] = "trait/rogue_enduring",
+                ["rogue_guarded"] = "trait/rogue_guarded",
+                ["rogue_heal_on_kill"] = "trait/rogue_heal_on_kill",
+                ["rogue_keen"] = "trait/rogue_keen",
+                ["rogue_kill_lucky10"] = "trait/rogue_kill_lucky10",
+                ["rogue_kill_plus_one"] = "trait/rogue_kill_plus_one",
+                ["rogue_lightstrike"] = "trait/rogue_lightstrike",
+                ["rogue_longlife"] = "trait/rogue_longlife",
+                ["rogue_starter_boost"] = "trait/rogue_starter_boost",
+                ["rogue_swift"] = "trait/rogue_swift",
+                ["rogue_tough"] = "trait/rogue_tough",
+                ["thousand_kill"] = "trait/thousand_kill",
+                ["whispers_from_the_abyss"] = "trait/whispers_from_the_abyss",
+                ["world_eater"] = "trait/world_eater"
+            };
 
         private static string ResolveIcon(string traitId, string requested)
         {
