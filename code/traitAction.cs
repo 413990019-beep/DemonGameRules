@@ -413,21 +413,7 @@ namespace DemonGameRules2.code
         /// 计算单位战力值（基于属性、击杀数和年龄）
         /// </summary>
 
-        /// 新增实时战力函数
-        private static float GetRealtimePower(Actor a)
-        {
-            if (a == null) return 0f;
-            try
-            {
-                // 如果你的版本有 power 这个统计，优先用
-                float p = a.stats["power"];
-                if (p > 0) return p;
-            }
-            catch { /* 忽略，没有就走计算版 */ }
 
-            // 兜底：用你现有的计算公式
-            try { return CalculatePower(a); } catch { return 0f; }
-        }
 
         public static float CalculatePower(Actor actor)
         {
@@ -450,8 +436,14 @@ namespace DemonGameRules2.code
             // 计算综合战力
             float power = (damage * 2) + (health * 0.5f) + (speed * 0.5f) + (armor * 1.5f) + killBonus + ageBonus;
 
+            // ===== 平滑衰减 =====
+            // decay < 1 越小衰减越狠，推荐 0.7 ~ 0.9
+            const float decay = 0.8f;
+            power = Mathf.Pow(power, decay);
+
             return Mathf.Round(power * 10f) / 10f; // 保留一位小数
         }
+
 
         /// <summary>
         /// 更新战力排行榜
@@ -492,7 +484,7 @@ namespace DemonGameRules2.code
                     _lastKnownDisplayName[baseName] = display;
 
                     // —— 阈值类
-                    float rp = GetRealtimePower(actor);
+                    float rp = CalculatePower(actor);
                     int age = (int)actor.getAge();
 
                     if (rp >= 100_000_000f && !actor.hasTrait("flesh_of_the_divine"))
@@ -1097,7 +1089,7 @@ namespace DemonGameRules2.code
                     .Where(actor => actor != null &&
                                 actor.hasHealth() &&
                                 !actor.name.StartsWith("[死亡]-") &&
-                                CalculatePower(actor) > 5000)
+                                CalculatePower(actor) > 500)
                     .OrderByDescending(actor => CalculatePower(actor))
                     .Take(MAX_CONTESTANTS)
                     .ToList();

@@ -380,14 +380,14 @@ namespace DemonGameRules.code
             var tKillPlusOne = CreateTrait("rogue_kill_plus_one", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tKillPlusOne, "uncommon");
 
-            ForbidManualGive(tKillPlusOne);
+       
             AssetManager.traits.add(tKillPlusOne);
 
             // B. 幸运劫掠（击杀时 1% 几率额外 +10 击杀数；无面板数值改动）
             var tLucky10 = CreateTrait("rogue_kill_lucky10", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tLucky10, "uncommon");
 
-            ForbidManualGive(tLucky10);
+  
             AssetManager.traits.add(tLucky10);
 
             // C. 起步加成（攻击 +30，生命 +500）
@@ -395,42 +395,42 @@ namespace DemonGameRules.code
             SetRarityCompat(tStarter, "uncommon");
             SafeSetStat(tStarter.base_stats, strings.S.damage, 30f);   // 低额外伤害
             SafeSetStat(tStarter.base_stats, strings.S.health, 500f);  // 低额外生命
-            ForbidManualGive(tStarter);
+     
             AssetManager.traits.add(tStarter);
 
             // D. 迅捷（移动速度 +3）
             var tSwift = CreateTrait("rogue_swift", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tSwift, "uncommon");
             SafeSetStat(tSwift.base_stats, strings.S.speed, 5f); // 机动小提升
-            ForbidManualGive(tSwift);
+
             AssetManager.traits.add(tSwift);
 
             // E. 灵锐（暴击率 +3%）
             var tKeen = CreateTrait("rogue_keen", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tKeen, "uncommon");
             SafeSetStat(tKeen.base_stats, strings.S.critical_chance, 0.1f); // 3% 暴击
-            ForbidManualGive(tKeen);
+
             AssetManager.traits.add(tKeen);
 
             // F. 坚毅（护甲 +8）
             var tTough = CreateTrait("rogue_tough", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tTough, "uncommon");
             SafeSetStat(tTough.base_stats, strings.S.armor, 8f); // 小护甲
-            ForbidManualGive(tTough);
+
             AssetManager.traits.add(tTough);
 
             // G. 持久（体力 +150）
             var tEnduring = CreateTrait("rogue_enduring", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tEnduring, "uncommon");
             SafeSetStat(tEnduring.base_stats, strings.S.stamina, 150f); // 续航小提升
-            ForbidManualGive(tEnduring);
+
             AssetManager.traits.add(tEnduring);
 
             // H. 长寿（寿命 +200）
             var tLonglife = CreateTrait("rogue_longlife", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tLonglife, "uncommon");
             SafeSetStat(tLonglife.base_stats, strings.S.lifespan, 200f); // 有老化系统时起效
-            ForbidManualGive(tLonglife);
+
             AssetManager.traits.add(tLonglife);
 
             // I. 轻斩（伤害 +80）
@@ -438,7 +438,6 @@ namespace DemonGameRules.code
             SetRarityCompat(tLightstrike, "uncommon");
             SafeSetStat(tLightstrike.base_stats, strings.S.damage, 80f); // 稍强于 C，但仍属轻量
 
-            ForbidManualGive(tLightstrike);
             AssetManager.traits.add(tLightstrike);
 
             // J. 厚实（生命 +1000）
@@ -446,14 +445,12 @@ namespace DemonGameRules.code
             SetRarityCompat(tGuarded, "uncommon");
             SafeSetStat(tGuarded.base_stats, strings.S.health, 1000f); // 小坦克向
 
-            ForbidManualGive(tGuarded);
             AssetManager.traits.add(tGuarded);
 
             // K. 击杀回春（击杀后恢复少量生命；逻辑在击杀回调里）
             var tHealOnKill = CreateTrait("rogue_heal_on_kill", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tHealOnKill, "uncommon");
 
-            ForbidManualGive(tHealOnKill);
             AssetManager.traits.add(tHealOnKill);
 
 
