@@ -58,7 +58,7 @@
         {
             "Id": "STAT_PATCH",
             "Type": "SWITCH",
-            "BoolVal": true,
+            "BoolVal": false,
             "TextVal": "STAT_PATCH",
             "Tooltip": "STAT_PATCH Description",
             "Callback": "DemonGameRules2.code.traitAction:OnStatPatchSwitchChanged"

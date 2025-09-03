@@ -431,6 +431,601 @@ namespace DemonGameRules2.code
             }
         }
         #endregion
+        #region   伤害系统
+
+        private static bool _isProcessingExchange = false; // 你 ExecuteDamageExchange 用到
+        private static bool _isProcessingHit = false;      // 包裹 getHit，避免递归
+
+
+        public static void ExecuteDamageExchange(BaseSimObject source, BaseSimObject target)
+        {
+            //if (UnityEngine.Random.value < 0.5f) return;
+            if (_isProcessingExchange) return;
+
+            try
+            {
+                // 基础检查：两边都必须是活体单位
+                if (source == null || !source.isActor() || !source.hasHealth()) return;
+                if (target == null || !target.isActor() || !target.hasHealth()) return;
+
+                Actor sourceActor = source.a;
+                Actor targetActor = target.a;
+                if (sourceActor == null || targetActor == null) return;
+
+                // 获取击杀数（没有就按 0 处理更合理）
+                int sourceKills = sourceActor.data?.kills ?? 0;
+                int targetKills = targetActor.data?.kills ?? 0;
+
+                _isProcessingExchange = true;
+
+                // 源单位受到的伤害（由目标输出）——注意只传 3 个参数
+                int damageToSource = CalculateDamage(targetActor, sourceActor, targetKills);
+
+                // 应用伤害（加小 try/finally，避免异常时 _isProcessingHit 悬挂）
+                try { _isProcessingHit = true; sourceActor.getHit(damageToSource, true, AttackType.Other, target, false, false, false); }
+                finally { _isProcessingHit = false; }
+
+                // 检查是否还活着
+                if (sourceActor.getHealth() <= 0) return;
+
+                // ===== 源单位回血（>100 才回） =====
+                if (sourceActor.getHealth() > 100 && sourceActor.getHealth() < sourceActor.getMaxHealth())
+                {
+                    int sourceHeal = Mathf.Max(1, sourceKills / 2);
+
+                    int healCapSource = Mathf.Max(1, Mathf.RoundToInt(sourceActor.getMaxHealth() * HEAL_MAX_FRACTION));
+                    sourceHeal = Mathf.Clamp(sourceHeal, 1, healCapSource);
+
+                    int room = Mathf.Max(0, sourceActor.getMaxHealth() - sourceActor.getHealth() - 1);
+                    if (room > 0)
+                    {
+                        sourceActor.restoreHealth(Mathf.Min(sourceHeal, room));
+                    }
+                }
+
+                // 目标单位受到的伤害（由源输出）
+                int damageToTarget = CalculateDamage(sourceActor, targetActor, sourceKills);
+
+                try { _isProcessingHit = true; targetActor.getHit(damageToTarget, true, AttackType.Other, source, false, false, false); }
+                finally { _isProcessingHit = false; }
+
+                // ===== 目标单位回血（>100 才回） =====
+                if (targetActor.getHealth() > 100 && targetActor.getHealth() < targetActor.getMaxHealth())
+                {
+                    int targetHeal = Mathf.Max(1, targetKills / 2);
+
+                    int healCapTarget = Mathf.Max(1, Mathf.RoundToInt(targetActor.getMaxHealth() * HEAL_MAX_FRACTION));
+                    targetHeal = Mathf.Clamp(targetHeal, 1, healCapTarget);
+
+                    int room = Mathf.Max(0, targetActor.getMaxHealth() - targetActor.getHealth() - 1);
+                    if (room > 0)
+                    {
+                        targetActor.restoreHealth(Mathf.Min(targetHeal, room));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[伤害交换异常] {ex.Message}");
+            }
+            finally
+            {
+                _isProcessingExchange = false;
+            }
+        }
+
+        // 可调常量
+        private const float BASE_DMG_WEIGHT = 3f; // 面板伤害权重
+        private const float KILL_RATE_PER_100 = 0.005f; // 每100击杀加成
+        private const float KILL_RATE_CAP = 5.00f; // 最高 +500%
+        private const float TARGET_HP_HARD_CAP = 0.15f; // 对单次命中的硬上限
+        private const float HEAL_MAX_FRACTION = 0.05f;  // 回血上限（5% MaxHP）
+        private const int MIN_DAMAGE = 1;
+
+        private static int CalculateDamage(Actor from, Actor to, int fromKills)
+        {
+            // 1) 读取面板伤害（容错 + 下限）
+            int panelDmg = 0;
+            try
+            {
+                float raw = from.stats["damage"];
+                panelDmg = raw > 0f ? Mathf.RoundToInt(raw) : 0;
+            }
+            catch { panelDmg = 0; }
+
+            // 2) 基础伤害：面板伤害的权重 + 击杀数直加
+            int baseDamage = Mathf.Max(MIN_DAMAGE, Mathf.RoundToInt(panelDmg * BASE_DMG_WEIGHT) + fromKills);
+
+            // 3) 击杀倍率：
+            float killRate = Mathf.Min((fromKills / 100f) * KILL_RATE_PER_100, KILL_RATE_CAP);
+            float mult = 1f + killRate;
+
+            // 4) 计算最终伤害 + 下限
+            int finalDamage = Mathf.Max(MIN_DAMAGE, Mathf.RoundToInt(baseDamage * mult));
+
+            // 5) 可选保底（若你希望面板太低时，至少等于击杀数）
+            finalDamage = Mathf.Max(finalDamage, fromKills);
+
+            // 6) 仅当“被伤害方”击杀数 ≥ 1 时，才施加单次命中硬上限
+            //if (to != null)
+            //{
+            //    int toKills = 0;
+            //    try { toKills = Mathf.Max(0, to.data?.kills ?? 0); } catch { toKills = 0; }
+
+            //    if (toKills >= 5) // ← 击杀数少于 1（即 0）则不做 10% MaxHP 限制
+            //    {
+            //        int toMax = 0;
+            //        try { toMax = Mathf.Max(0, to.getMaxHealth()); } catch { toMax = 0; }
+            //        if (toMax > 0)
+            //        {
+            //            int cap = Mathf.Max(MIN_DAMAGE, Mathf.RoundToInt(toMax * TARGET_HP_HARD_CAP)); // 10% 上限
+            //            if (finalDamage > cap) finalDamage = cap;
+            //        }
+            //    }
+            //}
+
+
+            return finalDamage;
+        }
+
+        #endregion
+
+
+        #region  强杀机制
+        // 放在 traitAction 类里
+        public static void TryKill(Actor a)
+        {
+            if (a == null) return;
+
+            try
+            {
+                // 1) 用一次“超额伤害”走完整的受击/死亡流程
+                float lethal = Mathf.Max(10f, a.getHealth() + a.getMaxHealth() + 99999999f);
+                a.getHit(lethal, true, AttackType.Other, null, false, false, false);
+            }
+            catch { /* 忽略 */ }
+
+            try
+            {
+                // 2) 如果还没死（比如被某些护栏拦截），直接移除
+                if (a != null && !a.isRekt() && a.hasHealth())
+                {
+                    ActionLibrary.removeUnit(a);
+                }
+            }
+            catch { /* 忽略 */ }
+        }
+        #endregion
+        #region 城市叛乱独立机制
+        public static void TryRandomWar()
+        {
+            if (World.world == null || World.world.wars == null) return;
+
+            List<Kingdom> kingdoms = World.world.kingdoms.list;
+            if (kingdoms == null || kingdoms.Count == 0) return;
+
+            int y = YearNow(); // 年份，一次拿够
+
+            // ========= 新增：仅剩一个王国时，改为强制内部叛乱 =========
+            if (kingdoms.Count == 1)
+            {
+                Kingdom solo = kingdoms[0];
+                if (solo != null && solo.isAlive())
+                {
+                    int cityCount = solo.cities != null ? solo.cities.Count : 0;
+                    if (cityCount >= 2)
+                    {
+                        UnityEngine.Debug.Log($"[世界历{y}年][恶魔干涉][单国局面] 世界只剩 {solo.data.name}，改为触发内部叛乱。");
+                        WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("恶魔干涉-叛乱", $"世界仅剩 {WorldLogPatchUtil.K(solo)}，强制触发内部叛乱"));
+                        TriggerCityRebellion(solo);
+                    }
+                    else
+                    {
+                        UnityEngine.Debug.Log($"[世界历{y}年][恶魔干涉][单国局面] 仅剩 {solo.data.name} 且城市数={cityCount}，无法触发叛乱（至少需要2座城）。");
+                    }
+                }
+                return;
+            }
+            // =====================================================
+
+            // 2个及以上王国的正常分支（保留你的既有行为）
+            List<Kingdom> validAttackers = kingdoms
+                .Where(k => k != null && k.isAlive() && k.cities != null && k.cities.Count >= 2)
+                .ToList();
+            if (validAttackers.Count == 0)
+                validAttackers = kingdoms.Where(k => k != null && k.isAlive()).ToList();
+
+            if (validAttackers.Count == 0) return;
+
+            WarManager warManager = World.world.wars;
+            Kingdom attacker = validAttackers[Randy.randomInt(0, validAttackers.Count)];
+
+            // 找目标
+            Kingdom defender = FindSuitableWarTarget(attacker, kingdoms, warManager);
+            WarTypeAsset warType = GetDefaultWarType();
+
+            // 没有任何目标或拿不到战争类型 —— 直接叛乱
+            if (defender == null || warType == null)
+            {
+                UnityEngine.Debug.Log($"[世界历{y}年][恶魔干涉][无宣战目标/类型] {attacker.data.name} 无法宣战，改为触发叛乱。");
+                WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("恶魔干涉-叛乱", $"{WorldLogPatchUtil.K(attacker)} 无法找到宣战目标，触发内部叛乱"));
+
+                if (attacker.cities != null && attacker.cities.Count >= 2)
+                    TriggerCityRebellion(attacker);
+                else
+                    UnityEngine.Debug.Log($"[世界历{y}年][恶魔干涉][叛乱跳过] {attacker.data.name} 城市不足，避免叛乱导致异常。");
+                return;
+            }
+
+            // 有目标就尝试宣战
+            War newWar = warManager.newWar(attacker, defender, warType);
+            if (newWar != null)
+            {
+                UnityEngine.Debug.Log($"[世界历{y}年][恶魔干涉]{attacker.data.name} 强制向 {defender.data.name} 宣战！战争名称: {newWar.data.name}");
+                WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("恶魔干涉-宣战", $"{WorldLogPatchUtil.K(attacker)} 强制向 {WorldLogPatchUtil.K(defender)} 宣战"));
+                return;
+            }
+
+            // 宣战失败则直接叛乱
+            UnityEngine.Debug.Log($"[世界历{y}年][恶魔干涉][宣战失败] {attacker.data.name} 无法对 {defender.data.name} 宣战，改为触发叛乱。");
+            WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("恶魔干涉-叛乱", $"{WorldLogPatchUtil.K(attacker)} 对 {WorldLogPatchUtil.K(defender)} 宣战失败，触发内部叛乱"));
+
+            if (attacker.cities != null && attacker.cities.Count >= 2)
+                TriggerCityRebellion(attacker);
+            else
+                UnityEngine.Debug.Log($"[世界历{y}年][恶魔干涉][叛乱跳过] {attacker.data.name} 城市不足，避免叛乱导致异常。");
+        }
+
+
+
+        private static void TriggerCityRebellion(Kingdom targetKingdom)
+        {
+            int y = YearNow();
+            if (targetKingdom == null || targetKingdom.cities == null || targetKingdom.cities.Count == 0)
+            {
+                UnityEngine.Debug.Log($"[世界历{y}年]{targetKingdom?.data.name} 没有城市，无法触发叛乱。");
+                return;
+            }
+
+            List<City> rebelliousCities = targetKingdom.cities
+                .Where(c => c.getLoyalty() < 30)
+                .ToList();
+
+            if (rebelliousCities.Count == 0)
+                rebelliousCities = new List<City>(targetKingdom.cities);
+
+            int rebellionCount = Randy.randomInt(1, Mathf.Min(20, rebelliousCities.Count) + 1);
+            rebelliousCities.Shuffle();
+            List<City> citiesToRebel = rebelliousCities.Take(rebellionCount).ToList();
+
+            UnityEngine.Debug.Log($"[世界历{y}年]{targetKingdom.data.name} 发生叛乱！{rebellionCount}个城市宣布独立。");
+            WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("恶魔干涉-叛乱", $"{WorldLogPatchUtil.K(targetKingdom)} 发生叛乱，{rebellionCount}个城市宣布独立"));
+
+            foreach (City rebelCity in citiesToRebel)
+            {
+                Actor leader = FindCityLeader(rebelCity);
+                if (leader != null)
+                {
+                    Kingdom newKingdom = rebelCity.makeOwnKingdom(leader, true, false);
+                    if (newKingdom != null)
+                    {
+                        UnityEngine.Debug.Log($"[世界历{y}年]{rebelCity.data.name} 成功独立，成立 {newKingdom.data.name}，领导者: {leader.name}");
+                        WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("恶魔干涉-建国/建制", $"{WorldLogPatchUtil.C(rebelCity)} 独立为 {WorldLogPatchUtil.K(newKingdom)}，领导者: {WorldLogPatchUtil.U(leader)}"));
+
+                        WarTypeAsset warType = GetDefaultWarType();
+                        if (warType != null)
+                        {
+                            World.world.wars.newWar(newKingdom, targetKingdom, warType);
+                            WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("恶魔干涉-宣战", $"{WorldLogPatchUtil.K(newKingdom)} 独立后立即向 {WorldLogPatchUtil.K(targetKingdom)} 宣战"));
+                        }
+                    }
+                }
+                else
+                {
+                    UnityEngine.Debug.Log($"[世界历{y}年]{rebelCity.data.name} 没有合适的领导者，叛乱失败。");
+                }
+            }
+        }
+
+        // 叛军领袖：优先城主；否则城内最能打且活着的单位
+        private static Actor FindCityLeader(City city)
+        {
+            if (city == null) return null;
+
+            try
+            {
+                if (city.leader != null && city.leader.isAlive())
+                    return city.leader;
+
+                if (city.units != null && city.units.Count > 0)
+                {
+                    return city.units
+                        .Where(a => a != null && a.isAlive())
+                        .OrderByDescending(a =>
+                        {
+                            try { return a.stats != null ? a.stats["health"] : 0f; }
+                            catch { return 0f; }
+                        })
+                        .FirstOrDefault();
+                }
+            }
+            catch { /* 静默 */ }
+
+            return null;
+        }
+
+        // 默认战争类型：先拿 WarTypeLibrary.normal；兜底从资源库取 "normal"
+        private static WarTypeAsset GetDefaultWarType()
+        {
+            try
+            {
+                if (WarTypeLibrary.normal != null)
+                    return WarTypeLibrary.normal;
+
+                if (AssetManager.war_types_library != null)
+                    return AssetManager.war_types_library.get("normal");
+            }
+            catch { /* 静默 */ }
+
+            return null;
+        }
+
+        // 选宣战目标：排除自己/已在交战/已亡；随机一个可打的
+        private static Kingdom FindSuitableWarTarget(Kingdom attacker, List<Kingdom> kingdoms, WarManager warManager)
+        {
+            if (attacker == null || kingdoms == null || warManager == null) return null;
+
+            try
+            {
+                var possibleTargets = kingdoms.Where(k =>
+                    k != null &&
+                    k != attacker &&
+                    k.isAlive() &&
+                    !warManager.isInWarWith(attacker, k)
+                ).ToList();
+
+                if (possibleTargets.Count == 0) return null;
+                return possibleTargets[Randy.randomInt(0, possibleTargets.Count)];
+            }
+            catch { /* 静默 */ }
+
+            return null;
+        }
+
+
+        /// <summary>
+        /// 定期把当前 WarManager 里正进行的战争抓出来，与上一次快照对比：
+        /// 新增 => “宣战”；丢失 => “停战/战争结束”
+        /// 完全不依赖具体方法名，适配性最好。
+        /// </summary>
+        /// <summary>
+        /// 快照对比（配对键 + 活跃状态判定）
+        /// - 当前活跃集合：按【两国ID排序后的 pairKey】收集（例如 "12-34"）
+        /// - 旧快照：上一轮活跃 pairKey 集合
+        /// - 新出现的 pairKey => 宣战
+        /// - 旧有但当前不活跃的 pairKey => 停战/战争结束
+        /// </summary>
+        private static readonly HashSet<string> _warPairsLive = new HashSet<string>();
+
+        private static void ScanWarDiffs()
+        {
+            try
+            {
+                var w = World.world;
+                if (w == null || w.wars == null) return;
+
+                float nowSec = (float)(w.getCurWorldTime() * 60.0);
+                if (nowSec < _lastWarScanWorldSeconds + WAR_SCAN_INTERVAL_SECONDS) return;
+                _lastWarScanWorldSeconds = nowSec;
+
+                // 1) 当前活跃战争 -> pairKey 集合
+                var currentActivePairs = new HashSet<string>();
+                foreach (var war in GetAllAliveWars())
+                {
+                    if (war == null || war.hasEnded()) continue;
+
+                    var k1 = war.main_attacker ?? war.getMainAttacker();
+                    var k2 = war.main_defender ?? war.getMainDefender();
+                    if (k1 == null || k2 == null) continue;
+
+                    long idA = k1.id, idB = k2.id;
+                    if (idA <= 0 || idB <= 0) continue;
+                    if (idA > idB) { var t = idA; idA = idB; idB = t; }
+                    currentActivePairs.Add($"{idA}-{idB}");
+                }
+
+                // 2) 首帧只建快照
+                if (!_warScanPrimed)
+                {
+                    _warPairsLive.Clear();
+                    foreach (var p in currentActivePairs) _warPairsLive.Add(p);
+                    _warScanPrimed = true;
+                    return;
+                }
+
+                int year = YearNow();
+
+                // 3) 新增 => 宣战
+                foreach (var pair in currentActivePairs)
+                {
+                    if (_warPairsLive.Contains(pair)) continue;
+
+                    if (TryResolvePair(pair, w, out var ka, out var kb) &&
+                        WorldEventGuard.ShouldLogWarStart(ka, kb, year))
+                    {
+                        WriteWorldEventSilently($"[世界历{year}年] [宣战] {DemonGameRules.code.WorldLogPatchUtil.K(ka)} vs {DemonGameRules.code.WorldLogPatchUtil.K(kb)}\n");
+                    }
+                }
+
+                // 4) 旧有但消失 => 停战/结束
+                foreach (var pair in _warPairsLive)
+                {
+                    if (currentActivePairs.Contains(pair)) continue;
+
+                    if (TryResolvePair(pair, w, out var ka, out var kb) &&
+                        WorldEventGuard.ShouldLogWarEnd(ka, kb, year))
+                    {
+                        WriteWorldEventSilently($"[世界历{year}年] [停战/战争结束] {DemonGameRules.code.WorldLogPatchUtil.K(ka)} vs {DemonGameRules.code.WorldLogPatchUtil.K(kb)}\n");
+                    }
+                }
+
+                // 5) 覆盖快照
+                _warPairsLive.Clear();
+                foreach (var p in currentActivePairs) _warPairsLive.Add(p);
+            }
+            catch { /* 静默 */ }
+        }
+
+
+
+
+
+
+        /// <summary>从 WarManager 里尽量取出“正在进行”的 War 列表（字段名多版本兼容）。</summary>
+        private static List<War> GetAllAliveWars()
+        {
+            var wm = World.world?.wars;
+            if (wm == null) return new List<War>();
+            // 直接用官方的活跃枚举
+            return wm.getActiveWars().ToList(); // IEnumerable<War> -> List<War>
+        }
+
+
+        /// <summary>多重兜底拿 War 的唯一 ID。</summary>
+        // 修正后（参数类型用 MapBox；调用处传入的 w 本来就是 MapBox）
+        private static bool TryResolvePair(string pair, MapBox w, out Kingdom a, out Kingdom b)
+        {
+            a = null; b = null;
+            var parts = pair.Split('-');
+            if (parts.Length != 2) return false;
+            if (!long.TryParse(parts[0], out var ida)) return false;
+            if (!long.TryParse(parts[1], out var idb)) return false;
+
+            foreach (var k in w.kingdoms.list)
+            {
+                if (k == null) continue;
+                if (k.id == ida) a = k;
+                else if (k.id == idb) b = k;
+            }
+            return a != null && b != null;
+        }
+
+
+        #endregion
+
+
+
+        #region 随机生成
+        private static readonly List<string> _majorRaces = new List<string>
+        {
+            "human", "elf", "orc", "dwarf"
+        };
+
+        private static readonly List<string> _otherUnits = new List<string>
+        {
+            "sheep","skeleton","white_mage","alien","necromancer","snowman","lil_pumpkin",
+            "bandit",
+            "civ_cat","civ_dog","civ_chicken","civ_rabbit","civ_monkey","civ_fox","civ_sheep","civ_cow","civ_armadillo","civ_wolf",
+            "civ_bear","civ_rhino","civ_buffalo","civ_hyena","civ_rat","civ_alpaca","civ_capybara","civ_goat","civ_scorpion","civ_crab",
+            "civ_penguin","civ_turtle","civ_crocodile","civ_snake","civ_frog","civ_liliar","civ_garlic_man","civ_lemon_man",
+            "civ_acid_gentleman","civ_crystal_golem","civ_candy_man","civ_beetle",
+            "bear","bee","beetle","buffalo","butterfly","smore","cat","chicken","cow","crab","crocodile",
+            "druid","fairy","fire_skull","fly","flower_bud","lemon_snail","garl","fox","frog","ghost",
+            "grasshopper","hyena","jumpy_skull","monkey","penguin","plague_doctor","rabbit","raccoon","seal","ostrich",
+            "unicorn","rat","rhino","snake","turtle","wolf"
+        };
+
+        public static void SpawnRandomUnit()
+        {
+
+            if (!_autoSpawnEnabled) return; // 新增：没开就不生成
+
+            string tID;
+            if (UnityEngine.Random.value < 0.9f)
+            {
+                int randomMajorIndex = UnityEngine.Random.Range(0, _majorRaces.Count);
+                tID = _majorRaces[randomMajorIndex];
+            }
+            else
+            {
+                int randomOtherIndex = UnityEngine.Random.Range(0, _otherUnits.Count);
+                tID = _otherUnits[randomOtherIndex];
+            }
+
+            var hillTiles = TileLibrary.hills.getCurrentTiles();
+            WorldTile tTile = null;
+            if (hillTiles != null && hillTiles.Count > 0)
+            {
+                int randomTileIndex = UnityEngine.Random.Range(0, hillTiles.Count);
+                tTile = hillTiles[randomTileIndex];
+            }
+
+            bool tMiracleSpawn = UnityEngine.Random.value < 0.1f;
+
+            if (tTile != null)
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    World.world.units.spawnNewUnit(tID, tTile, false, tMiracleSpawn, 6f, null, false);
+                }
+            }
+        }
+        #endregion
+        #region UI榜单
+
+        public static string BuildLeaderboardRichText()
+        {
+            if (World.world == null)
+                return "<color=#AAAAAA>世界还没加载，想看榜单也得有世界。</color>";
+
+            // 先确保内存里的两份榜是最新的
+            EnsureLivingFirstPlace();
+            UpdatePowerLeaderboard();
+
+            int year = YearNow();
+            int living = World.world.units?.Count(a => a != null && a.data != null && a.data.id > 0 && a.hasHealth()) ?? 0;
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"<b>【世界历{year}年】</b>");
+            sb.AppendLine($"存活单位数量: {living}\n");
+
+            // —— 战力榜 ——
+            sb.AppendLine("<color=#FF9900><b>【战力排行榜/Power Leaderboard】</b></color>");
+            if (powerLeaderboard != null && powerLeaderboard.Count > 0)
+            {
+                for (int i = 0; i < Mathf.Min(powerLeaderboard.Count, 10); i++)
+                {
+                    var e = powerLeaderboard[i];
+                    string rankColor = i == 0 ? "#FFD700" : i == 1 ? "#00CED1" : i == 2 ? "#CD7F32" : "#DDDDDD";
+                    string ageInfo = GetUnitAgeInfo(e.Key);
+                    sb.AppendLine($"{i + 1}. <color={rankColor}>{e.Key}</color> - <color=#FFCC00>{e.Value}</color><color=#AAAAAA>{ageInfo}</color>");
+                }
+            }
+            else sb.AppendLine("<color=#AAAAAA>暂无上榜者/No rankers yet</color>");
+
+            sb.AppendLine("<color=#666666>────────────────────</color>");
+
+            // —— 击杀榜 ——
+            sb.AppendLine("<color=#66AAFF><b>【杀戮排行榜/Kills Leaderboard】</b></color>");
+            if (killLeaderboard != null && killLeaderboard.Count > 0)
+            {
+                for (int i = 0; i < Mathf.Min(killLeaderboard.Count, 10); i++)
+                {
+                    var e = killLeaderboard[i];
+                    string rankColor = i == 0 ? "#FFD700" : i == 1 ? "#00CED1" : i == 2 ? "#CD7F32" : (IsUnitAlive(e.Key) ? "#DDDDDD" : "#AAAAAA");
+                    string ageInfo = GetUnitAgeInfo(e.Key);
+                    sb.AppendLine($"{i + 1}. <color={rankColor}>{e.Key}</color> - <color={GetKillColor(e.Value)}>{e.Value}</color><color=#AAAAAA>{ageInfo}</color>");
+                }
+            }
+            else sb.AppendLine("<color=#AAAAAA>暂无上榜者/No rankers yet</color>");
+
+            return sb.ToString();
+        }
+
+        #endregion
+
+
+
 
     }
 }

@@ -26,14 +26,6 @@ namespace DemonGameRules.code
         private static HashSet<string> deadUnitsByBaseName = new HashSet<string>(); // 统一为HashSet，解决命名冲突
         private static readonly System.Random systemRandom = new System.Random(); // 明确使用System.Random并修改变量名避免混淆
 
-        private const string TRAIT_FIRST_BLOOD = "first_blood";
-        private const string TRAIT_HUNDRED_SOULS = "hundred_souls";
-        private const string TRAIT_THOUSAND_KILL = "thousand_kill";
-        private const string TRAIT_AGELESS = "ageless";
-        private const string TRAIT_FLESH_DIVINE = "flesh_of_the_divine";
-        private const string TRAIT_INCARNATION_SLAUGHTER = "incarnation_of_slaughter";
-        private const string TRAIT_WORLD_EATER = "world_eater";
-
    
 
 
@@ -155,6 +147,112 @@ namespace DemonGameRules.code
 
 
 
+        #region 4. 单位死亡时清理属性字典（新增补丁）
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Actor), "checkCallbacksOnDeath")]
+        public static void Actor_CheckCallbacksOnDeath_Postfix(Actor __instance)
+        {
+            if (__instance != null && __instance.data != null && __instance.data.id > 0)
+            {
+                long unitId = __instance.data.id;
+                // 移除死亡单位的基础属性记录，避免内存泄漏
+                baseDamage.TryRemove(unitId, out _);
+                baseHealth.TryRemove(unitId, out _);
+                _lastAppliedKills.TryRemove(unitId, out _);
+                _lastWrittenMaxHp.TryRemove(unitId, out _);
+                _lastAppliedKills_Dmg.TryRemove(unitId, out _);
+                _lastWrittenDamage.TryRemove(unitId, out _);
+            }
+        }
+        #endregion
+
+        #region 5. 击杀奖励（原有逻辑保留）
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Actor), "newKillAction")]
+        public static void Actor_newKillAction_Postfix(Actor __instance, Actor pDeadUnit)
+        {
+            try
+            {
+                if (!__instance.isAlive())
+                    return;
+
+                if (__instance.hasTrait("bloodlust"))
+                {
+                    __instance.changeHappiness("just_killed", 1);
+                }
+
+
+                traitAction.TryMarkFavoriteByPower(__instance);
+
+
+                // A：击杀额外 +1 击杀数（稳定滚雪球）
+                if (__instance.hasTrait("rogue_kill_plus_one"))
+                {
+                    __instance.data.kills += 1;
+                    // （如你有写入日志系统可在此记录）
+                }
+
+                // B：击杀时 1% 几率 +10 击杀数（偶尔暴富）
+                if (__instance.hasTrait("rogue_kill_lucky10"))
+                {
+                    if (UnityEngine.Random.value < 0.01f) // 1% 概率
+                    {
+                        __instance.data.kills += 10;
+                    }
+                }
+
+                // （可选）K：击杀回春（如果你想要“边杀边回血”的趣味项）
+                // 说明：J 我做成“纯血量向”的出生轻量特质；如果你还想要“击杀回血版”，
+                // 可以新建一个 ID，比如 rogue_heal_on_kill，并在 traits.Init() 中注册（无面板数值）。
+                if (__instance.hasTrait("rogue_heal_on_kill"))
+                {
+                    // 直接小额回复固定生命（不破上限）
+                    // 你也可以改成按最大生命百分比：
+                    // int heal = Mathf.RoundToInt(__instance.stats["health"] * 0.05f); // 5%
+                    int heal = 50;
+                    __instance.restoreHealth(heal);
+                }
+
+                // === DGR: 击杀阶梯与特殊授勋 ===
+                try
+                {
+                    var killer = __instance;
+                    var victim = pDeadUnit;
+                    int k = killer?.data?.kills ?? 0;
+
+                    if (k >= 10 && !killer.hasTrait("first_blood")) killer.addTrait("first_blood");
+                    if (k >= 100 && !killer.hasTrait("hundred_souls")) killer.addTrait("hundred_souls");
+                    if (k >= 1000 && !killer.hasTrait("thousand_kill")) killer.addTrait("thousand_kill");
+                    if (k >= 100000 && !killer.hasTrait("incarnation_of_slaughter")) killer.addTrait("incarnation_of_slaughter");
+
+                    // 屠魔者：目标是飞升者，自己不是飞升系
+                    if (victim != null && (victim.hasTrait("ascended_one") || victim.hasTrait("ascended_demon") || victim.hasTrait("daozhu")))
+                    {
+                        if (!killer.hasTrait("ascended_one") && !killer.hasTrait("ascended_demon") && !killer.hasTrait("daozhu"))
+                            if (!killer.hasTrait("godslayer")) killer.addTrait("godslayer");
+                    }
+
+                    // 大道争锋：参赛者之间击杀，授予“以战成道”
+                    if (DemonGameRules2.code.traitAction.IsGreatContestActive
+                        && DemonGameRules2.code.traitAction.GreatContestants != null
+                        && victim != null)
+                    {
+                        var list = DemonGameRules2.code.traitAction.GreatContestants;
+                        if (list.Contains(killer) && list.Contains(victim) && !killer.hasTrait("path_of_battle"))
+                            killer.addTrait("path_of_battle");
+                    }
+                }
+                catch { /* 别拦战斗流程 */ }
+
+
+
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[击杀奖励异常] {__instance?.data?.name} 错误: {ex.Message}");
+            }
+        }
+        #endregion
 
         #region 3. Actor.updateStats 补丁 - 绝对值还原 / 仅击杀≥10 / 防“最大生命反复叠加”护栏
 
@@ -323,89 +421,15 @@ namespace DemonGameRules.code
             stats["damage"] = newDmg;
             _lastAppliedKills_Dmg[id] = __state.Kills;
             _lastWrittenDamage[id] = newDmg;
-
-            // 6) Achievement traits
-            CheckAchievementTraits(__instance);
         }
 
         #endregion
 
-        private static void CheckAchievementTraits(Actor actor)
-        {
-            if (actor == null || actor.data == null) return;
-
-            int kills = actor.data.kills;
-            float power = traitAction.CalculatePower(actor);
-            int age = actor.getAge();
-
-            if (kills >= 10 && !actor.hasTrait(TRAIT_FIRST_BLOOD))
-                actor.addTrait(TRAIT_FIRST_BLOOD);
-            if (kills >= 100 && !actor.hasTrait(TRAIT_HUNDRED_SOULS))
-                actor.addTrait(TRAIT_HUNDRED_SOULS);
-            if (kills >= 1000 && !actor.hasTrait(TRAIT_THOUSAND_KILL))
-                actor.addTrait(TRAIT_THOUSAND_KILL);
-            if (age >= 500 && power >= 100000f && !actor.hasTrait(TRAIT_AGELESS))
-                actor.addTrait(TRAIT_AGELESS);
-            if (power >= 100000000f && !actor.hasTrait(TRAIT_FLESH_DIVINE))
-                actor.addTrait(TRAIT_FLESH_DIVINE);
-            if (kills >= 100000 && !actor.hasTrait(TRAIT_INCARNATION_SLAUGHTER))
-                actor.addTrait(TRAIT_INCARNATION_SLAUGHTER);
-            if (actor.hasTrait(TRAIT_FLESH_DIVINE) && actor.hasTrait(TRAIT_INCARNATION_SLAUGHTER) && !actor.hasTrait(TRAIT_WORLD_EATER))
-                actor.addTrait(TRAIT_WORLD_EATER);
-        }
-
-        #region 4. 单位死亡时清理属性字典（新增补丁）
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(Actor), "checkCallbacksOnDeath")]
-        public static void Actor_CheckCallbacksOnDeath_Postfix(Actor __instance)
-        {
-            if (__instance != null && __instance.data != null && __instance.data.id > 0)
-            {
-                long unitId = __instance.data.id;
-                // 移除死亡单位的基础属性记录，避免内存泄漏
-                baseDamage.TryRemove(unitId, out _);
-                baseHealth.TryRemove(unitId, out _);
-                _lastAppliedKills.TryRemove(unitId, out _);
-                _lastWrittenMaxHp.TryRemove(unitId, out _);
-                _lastAppliedKills_Dmg.TryRemove(unitId, out _);
-                _lastWrittenDamage.TryRemove(unitId, out _);
-            }
-        }
-        #endregion
-
-        #region 5. 击杀奖励（原有逻辑保留）
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(Actor), "newKillAction")]
-        public static void Actor_newKillAction_Postfix(Actor __instance, Actor pDeadUnit)
-        {
-            try
-            {
-                if (!__instance.isAlive())
-                    return;
-
-                if (__instance.hasTrait("bloodlust"))
-                {
-                    __instance.changeHappiness("just_killed", 1);
-                }
 
 
-                traitAction.TryMarkFavoriteByPower(__instance);
 
 
-                // 🎲 0.1% 概率（千分之一）额外+10击杀数
-                if (UnityEngine.Random.value < 0.0005f) // 0.001 = 0.1%
-                {
-                    __instance.data.kills += 10;
-                    //Debug.Log($"[幸运奖励] {__instance.data.name} 触发0.05%几率，额外获得10击杀数！");
-                }
 
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[击杀奖励异常] {__instance?.data?.name} 错误: {ex.Message}");
-            }
-        }
-        #endregion
 
         #region 6. 恶魔防御（仅保留反击逻辑，移除拦截伤害）
         // 反入保护
