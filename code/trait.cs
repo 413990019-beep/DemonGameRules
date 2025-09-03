@@ -92,7 +92,7 @@ namespace DemonGameRules.code
         // —— 规则2：允许随机获得（出生/成长概率），与手动添加解耦 —— 
         private static void EnableRandomGain(ActorTrait t, int rateBirth = 0, int rateGrow = 0, bool allowMutationBox = false)
         {
-            t.rate_birth = rateBirth;
+            t.birth = rateBirth;
             t.rate_acquire_grow_up = rateGrow;
             t.is_mutation_box_allowed = allowMutationBox;
         }
