@@ -162,6 +162,133 @@ namespace DemonGameRules.code
         }
         #endregion
 
+        #region  船只判断
+        private static readonly HashSet<string> ShipIds = new(StringComparer.OrdinalIgnoreCase)
+        {
+            // 基础船只
+            "boat_type_fishing",
+            "boat_type_trading",
+            "boat_type_transport",
+            "boat_fishing",
+
+            // 各族贸易船
+            "boat_trading_human",
+            "boat_trading_orc",
+            "boat_trading_elf",
+            "boat_trading_dwarf",
+            "boat_trading_acid_gentleman",
+            "boat_trading_alpaca",
+            "boat_trading_angle",
+            "boat_trading_armadillo",
+            "boat_trading_bear",
+            "boat_trading_buffalo",
+            "boat_trading_candy_man",
+            "boat_trading_capybara",
+            "boat_trading_cat",
+            "boat_trading_chicken",
+            "boat_trading_cow",
+            "boat_trading_crab",
+            "boat_trading_crocodile",
+            "boat_trading_crystal_golem",
+            "boat_trading_dog",
+            "boat_trading_fox",
+            "boat_trading_frog",
+            "boat_trading_garlic_man",
+            "boat_trading_goat",
+            "boat_trading_hyena",
+            "boat_trading_lemon_man",
+            "boat_trading_liliar",
+            "boat_trading_monkey",
+            "boat_trading_penguin",
+            "boat_trading_piranha",
+            "boat_trading_rabbit",
+            "boat_trading_rat",
+            "boat_trading_rhino",
+            "boat_trading_scorpion",
+            "boat_trading_sheep",
+            "boat_trading_snake",
+            "boat_trading_turtle",
+            "boat_trading_wolf",
+            "boat_trading_white_mage",
+            "boat_trading_snowman",
+            "boat_trading_necromancer",
+            "boat_trading_evil_mage",
+            "boat_trading_druid",
+            "boat_trading_bee",
+            "boat_trading_beetle",
+            "boat_trading_fairy",
+            "boat_trading_demon",
+            "boat_trading_cold_one",
+            "boat_trading_bandit",
+            "boat_trading_alien",
+            "boat_trading_greg",
+
+            // 各族运输船
+            "boat_transport_human",
+            "boat_transport_orc",
+            "boat_transport_elf",
+            "boat_transport_dwarf",
+            "boat_transport_acid_gentleman",
+            "boat_transport_alpaca",
+            "boat_transport_angle",
+            "boat_transport_armadillo",
+            "boat_transport_bear",
+            "boat_transport_buffalo",
+            "boat_transport_candy_man",
+            "boat_transport_capybara",
+            "boat_transport_cat",
+            "boat_transport_chicken",
+            "boat_transport_cow",
+            "boat_transport_crab",
+            "boat_transport_crocodile",
+            "boat_transport_crystal_golem",
+            "boat_transport_dog",
+            "boat_transport_fox",
+            "boat_transport_frog",
+            "boat_transport_garlic_man",
+            "boat_transport_goat",
+            "boat_transport_hyena",
+            "boat_transport_lemon_man",
+            "boat_transport_liliar",
+            "boat_transport_monkey",
+            "boat_transport_penguin",
+            "boat_transport_piranha",
+            "boat_transport_rabbit",
+            "boat_transport_rat",
+            "boat_transport_rhino",
+            "boat_transport_scorpion",
+            "boat_transport_sheep",
+            "boat_transport_snake",
+            "boat_transport_turtle",
+            "boat_transport_wolf",
+            "boat_transport_white_mage",
+            "boat_transport_snowman",
+            "boat_transport_necromancer",
+            "boat_transport_evil_mage",
+            "boat_transport_druid",
+            "boat_transport_bee",
+            "boat_transport_beetle",
+            "boat_transport_fairy",
+            "boat_transport_demon",
+            "boat_transport_cold_one",
+            "boat_transport_bandit",
+            "boat_transport_alien",
+            "boat_transport_greg"
+        };
+
+        private static bool IsShip(Actor a)
+        {
+            try
+            {
+                string id = a?.asset?.id;
+                if (string.IsNullOrEmpty(id)) return false;
+                return ShipIds.Contains(id);
+            }
+            catch { return false; }
+        }
+        #endregion
+
+
         #region 5. 击杀奖励（原有逻辑保留）
 
         private static bool EnsureTrait(Actor a, string id, bool condition)
@@ -179,6 +306,11 @@ namespace DemonGameRules.code
             {
                 if (!__instance.isAlive())
                     return;
+
+
+                if (IsShip(__instance))
+                    return;
+
 
                 if (__instance.hasTrait("bloodlust"))
                 {
@@ -993,131 +1125,7 @@ namespace DemonGameRules.code
 
 
 
-        #region  船只判断
-        private static readonly HashSet<string> ShipIds = new(StringComparer.OrdinalIgnoreCase)
-        {
-            // 基础船只
-            "boat_type_fishing",
-            "boat_type_trading",
-            "boat_type_transport",
-            "boat_fishing",
-
-            // 各族贸易船
-            "boat_trading_human",
-            "boat_trading_orc",
-            "boat_trading_elf",
-            "boat_trading_dwarf",
-            "boat_trading_acid_gentleman",
-            "boat_trading_alpaca",
-            "boat_trading_angle",
-            "boat_trading_armadillo",
-            "boat_trading_bear",
-            "boat_trading_buffalo",
-            "boat_trading_candy_man",
-            "boat_trading_capybara",
-            "boat_trading_cat",
-            "boat_trading_chicken",
-            "boat_trading_cow",
-            "boat_trading_crab",
-            "boat_trading_crocodile",
-            "boat_trading_crystal_golem",
-            "boat_trading_dog",
-            "boat_trading_fox",
-            "boat_trading_frog",
-            "boat_trading_garlic_man",
-            "boat_trading_goat",
-            "boat_trading_hyena",
-            "boat_trading_lemon_man",
-            "boat_trading_liliar",
-            "boat_trading_monkey",
-            "boat_trading_penguin",
-            "boat_trading_piranha",
-            "boat_trading_rabbit",
-            "boat_trading_rat",
-            "boat_trading_rhino",
-            "boat_trading_scorpion",
-            "boat_trading_sheep",
-            "boat_trading_snake",
-            "boat_trading_turtle",
-            "boat_trading_wolf",
-            "boat_trading_white_mage",
-            "boat_trading_snowman",
-            "boat_trading_necromancer",
-            "boat_trading_evil_mage",
-            "boat_trading_druid",
-            "boat_trading_bee",
-            "boat_trading_beetle",
-            "boat_trading_fairy",
-            "boat_trading_demon",
-            "boat_trading_cold_one",
-            "boat_trading_bandit",
-            "boat_trading_alien",
-            "boat_trading_greg",
-
-            // 各族运输船
-            "boat_transport_human",
-            "boat_transport_orc",
-            "boat_transport_elf",
-            "boat_transport_dwarf",
-            "boat_transport_acid_gentleman",
-            "boat_transport_alpaca",
-            "boat_transport_angle",
-            "boat_transport_armadillo",
-            "boat_transport_bear",
-            "boat_transport_buffalo",
-            "boat_transport_candy_man",
-            "boat_transport_capybara",
-            "boat_transport_cat",
-            "boat_transport_chicken",
-            "boat_transport_cow",
-            "boat_transport_crab",
-            "boat_transport_crocodile",
-            "boat_transport_crystal_golem",
-            "boat_transport_dog",
-            "boat_transport_fox",
-            "boat_transport_frog",
-            "boat_transport_garlic_man",
-            "boat_transport_goat",
-            "boat_transport_hyena",
-            "boat_transport_lemon_man",
-            "boat_transport_liliar",
-            "boat_transport_monkey",
-            "boat_transport_penguin",
-            "boat_transport_piranha",
-            "boat_transport_rabbit",
-            "boat_transport_rat",
-            "boat_transport_rhino",
-            "boat_transport_scorpion",
-            "boat_transport_sheep",
-            "boat_transport_snake",
-            "boat_transport_turtle",
-            "boat_transport_wolf",
-            "boat_transport_white_mage",
-            "boat_transport_snowman",
-            "boat_transport_necromancer",
-            "boat_transport_evil_mage",
-            "boat_transport_druid",
-            "boat_transport_bee",
-            "boat_transport_beetle",
-            "boat_transport_fairy",
-            "boat_transport_demon",
-            "boat_transport_cold_one",
-            "boat_transport_bandit",
-            "boat_transport_alien",
-            "boat_transport_greg"
-        };
-
-        private static bool IsShip(Actor a)
-        {
-            try
-            {
-                string id = a?.asset?.id;
-                if (string.IsNullOrEmpty(id)) return false;
-                return ShipIds.Contains(id);
-            }
-            catch { return false; }
-        }
-        #endregion
+        
 
     }
 }
