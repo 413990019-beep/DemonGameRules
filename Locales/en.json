@@ -2,7 +2,7 @@
     "BiaoTi": "Leaderboard",
     "DM": "Demon Mode",
     "DM Description": "Toggle Demon Mode on or off.",
-    "AF": "Auto-Favorite (≥10,000 power & on board)",
+    "AF": "Auto-Favorite",
     "AF Description": "When enabled, units that meet the condition will be auto-favorited.",
     "Modset": "Mod Settings",
     "WAR_YEARS": "Forced war interval (years)",

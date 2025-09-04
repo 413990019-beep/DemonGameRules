@@ -167,6 +167,14 @@ namespace DemonGameRules.code
         #endregion
 
         #region 5. 击杀奖励（原有逻辑保留）
+
+        private static bool EnsureTrait(Actor a, string id, bool condition)
+        {
+            if (!condition || a == null || !a.hasHealth() || a.hasTrait(id)) return false;
+            a.addTrait(id);
+            return true;
+        }
+
         [HarmonyPostfix]
         [HarmonyPatch(typeof(Actor), "newKillAction")]
         public static void Actor_newKillAction_Postfix(Actor __instance, Actor pDeadUnit)
@@ -220,29 +228,35 @@ namespace DemonGameRules.code
                     var victim = pDeadUnit;
                     int k = killer?.data?.kills ?? 0;
 
-                    if (k >= 10 && !killer.hasTrait("first_blood")) killer.addTrait("first_blood");
-                    if (k >= 100 && !killer.hasTrait("hundred_souls")) killer.addTrait("hundred_souls");
-                    if (k >= 1000 && !killer.hasTrait("thousand_kill")) killer.addTrait("thousand_kill");
-                    if (k >= 100000 && !killer.hasTrait("incarnation_of_slaughter")) killer.addTrait("incarnation_of_slaughter");
+                    bool triggerFav = false; // 本次是否要触发收藏
 
-                    // 屠魔者：目标是飞升者，自己不是飞升系
-                    if (victim != null && (victim.hasTrait("ascended_one") || victim.hasTrait("ascended_demon") || victim.hasTrait("daozhu")))
+                    // 普通阶梯（不触发收藏）
+                    EnsureTrait(killer, "first_blood", k >= 10);
+                    EnsureTrait(killer, "hundred_souls", k >= 100);
+
+                    // 1000杀与100000杀：触发收藏
+                    if (EnsureTrait(killer, "thousand_kill", k >= 1000)) triggerFav = true;
+                    if (EnsureTrait(killer, "incarnation_of_slaughter", k >= 100000)) triggerFav = true;
+
+                    // 屠魔者：击杀 ascended_one，授予 godslayer 并触发收藏
+                    if (killer != null && victim != null && killer.isAlive()
+                        && victim.hasTrait("ascended_one") && !killer.hasTrait("ascended_one"))
                     {
-                        if (!killer.hasTrait("ascended_one") && !killer.hasTrait("ascended_demon") && !killer.hasTrait("daozhu"))
-                            if (!killer.hasTrait("godslayer")) killer.addTrait("godslayer");
+                        if (EnsureTrait(killer, "godslayer", true)) triggerFav = true;
                     }
 
-                    // 大道争锋：参赛者之间击杀，授予“以战成道”
-                    if (DemonGameRules2.code.traitAction.IsGreatContestActive
-                        && DemonGameRules2.code.traitAction.GreatContestants != null
-                        && victim != null)
+                    // 以战成道：双方皆 chosen_of_providence，授予 path_of_battle 并触发收藏
+                    if (killer != null && victim != null && killer.isAlive()
+                        && killer != victim
+                        && killer.hasTrait("chosen_of_providence")
+                        && victim.hasTrait("chosen_of_providence"))
                     {
-                        var list = DemonGameRules2.code.traitAction.GreatContestants;
-                        if (list.Contains(killer) && list.Contains(victim) && !killer.hasTrait("path_of_battle"))
-                            killer.addTrait("path_of_battle");
+                        if (EnsureTrait(killer, "path_of_battle", !killer.hasTrait("path_of_battle"))) triggerFav = true;
                     }
+
+                    if (triggerFav) traitAction.TryAutoFavorite(killer);
                 }
-                catch { /* 别拦战斗流程 */ }
+                catch (Exception) { /* 你爱怎么记日志就怎么写，这里不添堵 */ }
 
 
 

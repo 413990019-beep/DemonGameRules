@@ -99,6 +99,12 @@ namespace DemonGameRules2.code
         }
 
 
+        public static void TryAutoFavorite(Actor a)
+        {
+            if (!_autoFavoriteEnabled || a?.data == null || a.data.favorite) return;
+            a.data.favorite = true;
+        }
+
 
 
 
@@ -499,23 +505,39 @@ namespace DemonGameRules2.code
                 catch { }
             }
 
-            // —— 永恒传奇：全图战力第一，且非飞升系（只判一次）
+            // —— 永恒传奇：全图战力第一且非飞升系，保证全局唯一
             try
             {
+                if (World.world == null || World.world.units == null) return;
+
+                // 先筛掉飞升系，避免选到不该拿的人
                 var top = World.world.units
-                    .Where(u => u != null && u.hasHealth() && !u.name.StartsWith("[死亡]-"))
+                    .Where(u => u != null
+                                && u.hasHealth()
+                                && !u.name.StartsWith("[死亡]-")
+                                && !u.hasTrait("ascended_one")
+                                && !u.hasTrait("ascended_demon")
+                                && !u.hasTrait("daozhu"))
                     .OrderByDescending(u => CalculatePower(u))
                     .FirstOrDefault();
 
-                if (top != null
-                    && !top.hasTrait("ascended_one")
-                    && !top.hasTrait("ascended_demon")
-                    && !top.hasTrait("daozhu")
-                    && !top.hasTrait("eternal_legend"))
+                // 先统一收回：把所有在世持有者的“永恒传奇”移除，稍后只给真正榜一
+                foreach (var holder in World.world.units.Where(u =>
+                             u != null && u.hasHealth() && u.hasTrait("eternal_legend")))
                 {
-                    top.addTrait("eternal_legend");
+                    if (holder != top) holder.removeTrait("eternal_legend");
                 }
+
+                // 若存在合法的榜一，则授予；如果没有（比如全是飞升系），那就全图没人持有
+                if (top != null && !top.hasTrait("eternal_legend"))
+                    top.addTrait("eternal_legend");
             }
+            catch
+            {
+                // 别让奖杯逻辑把战斗卡死
+            }
+
+        }
             catch { }
         }
 
@@ -665,7 +687,7 @@ namespace DemonGameRules2.code
 
             float p = CalculatePower(a);
 
-            if (p > 10000f && IsOnAnyBoard(a))
+            if (p > 100000000f && IsOnAnyBoard(a))
             {
                 if (!a.data.favorite)
                     a.data.favorite = true;
@@ -1176,6 +1198,7 @@ namespace DemonGameRules2.code
                 foreach (var c in GreatContestants)
                 {
                     try { if (!c.hasTrait("chosen_of_providence")) c.addTrait("chosen_of_providence"); } catch {}
+                    TryAutoFavorite(c);
                 }
 
                 
@@ -1362,7 +1385,7 @@ namespace DemonGameRules2.code
                         if (!champion.hasTrait(TRAIT_DAOZHU))
                             champion.addTrait(TRAIT_DAOZHU);
                         if (!champion.hasTrait("ascended_one")) champion.addTrait("ascended_one");
-
+                        TryAutoFavorite(champion);
                         eventEndLog += $"\n<color=#FFD700>【大道得主】</color> {champion.name} 获授机缘：<color=#FFCC00>道主</color>。\n";
                         eventEndLog += $"万物共鸣，新传奇起航！\n";
                     }
@@ -1471,6 +1494,7 @@ namespace DemonGameRules2.code
                 DemonChampionBaseName = GetBaseName(DemonChampionOriginalFullName);
             }
             tDemon.restoreHealth(9999999); // ← 一刀拉满，别管上限
+            TryAutoFavorite(tDemon);
             string msg1 = $"[恶魔飞升] 世界历 {currentYear} 年：{(tDemon?.name ?? "未知单位")} 已变为恶魔，将在 {revertYear} 年得道成人。";
             Debug.Log(msg1);
             WriteLeaderboardToFile(msg1 + Environment.NewLine);
@@ -1507,6 +1531,7 @@ namespace DemonGameRules2.code
             // if (!string.IsNullOrEmpty(DemonChampionOriginalFullName))
             //     tHuman.name = DemonChampionOriginalFullName;
             tHuman.restoreHealth(9999999); // ← 同样处理
+            TryAutoFavorite(tHuman);
             tHuman.setTransformed();
             return true;
         }
@@ -1592,7 +1617,7 @@ namespace DemonGameRules2.code
                 Debug.LogWarning("[恶魔使徒] 生成失败：createNewUnit 返回 null。");
                 return;
             }
-
+            TryAutoFavorite(mage);
             // 基础入场特效
             EffectsLibrary.spawn("fx_spawn", mage.current_tile, null, null, 0f, -1f, -1f, null);
 

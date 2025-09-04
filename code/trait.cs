@@ -362,13 +362,13 @@ namespace DemonGameRules.code
             // 永恒传奇：全图第一但非飞升（第三~三点五梯队）
             var eternal_legend = CreateTrait("eternal_legend", "trait/eternal_legend", "end_path_group");
             SetRarityCompat(eternal_legend, "legendary");
-            SafeSetStat(eternal_legend.base_stats, strings.S.health, 5000f);
-            SafeSetStat(eternal_legend.base_stats, strings.S.damage, 150f);
-            SafeSetStat(eternal_legend.base_stats, strings.S.armor, 5f);
-            SafeSetStat(eternal_legend.base_stats, strings.S.critical_chance, 0.2f);
-            SafeSetStat(eternal_legend.base_stats, strings.S.speed, 1f);
-            SafeSetStat(eternal_legend.base_stats, strings.S.stamina, 80f);
-            SafeSetStat(eternal_legend.base_stats, strings.S.lifespan, 120f);
+            SafeSetStat(eternal_legend.base_stats, strings.S.health, 9999f);
+            SafeSetStat(eternal_legend.base_stats, strings.S.damage, 999f);
+            SafeSetStat(eternal_legend.base_stats, strings.S.armor, 9f);
+            SafeSetStat(eternal_legend.base_stats, strings.S.critical_chance, 0.09f);
+            SafeSetStat(eternal_legend.base_stats, strings.S.speed, 9f);
+            SafeSetStat(eternal_legend.base_stats, strings.S.stamina, 999f);
+            SafeSetStat(eternal_legend.base_stats, strings.S.lifespan, 999f);
             ForbidManualGive(eternal_legend);
             AssetManager.traits.add(eternal_legend);
 
