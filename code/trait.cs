@@ -326,11 +326,11 @@ namespace DemonGameRules.code
             // 飞升标记：为避免与“道主/飞升恶魔”叠爆，默认不给数值（你要也可加）
             var ascended_one = CreateTrait("ascended_one", "trait/ascended_one", "end_path_group");
             SetRarityCompat(ascended_one, "legendary");
-            SafeSetStat(ascended_demon.base_stats, strings.S.health, 10000f); // 生命 +3800：坦度略低于道主
-            SafeSetStat(ascended_demon.base_stats, strings.S.damage, 300f); // 伤害 +800：爆发更强
-            SafeSetStat(ascended_demon.base_stats, strings.S.armor, 20f); // 护甲 +20：适度减伤
-            SafeSetStat(ascended_demon.base_stats, strings.S.stamina, 300f);  // 体力 +600：强续航
-            SafeSetStat(ascended_demon.base_stats, strings.S.lifespan, 300f);  // 寿命 +600
+            SafeSetStat(ascended_one.base_stats, strings.S.health, 10000f); // 生命 +3800：坦度略低于道主
+            SafeSetStat(ascended_one.base_stats, strings.S.damage, 300f); // 伤害 +800：爆发更强
+            SafeSetStat(ascended_one.base_stats, strings.S.armor, 20f); // 护甲 +20：适度减伤
+            SafeSetStat(ascended_one.base_stats, strings.S.stamina, 300f);  // 体力 +600：强续航
+            SafeSetStat(ascended_one.base_stats, strings.S.lifespan, 300f);  // 寿命 +600
 
             ForbidManualGive(ascended_one);
             AssetManager.traits.add(ascended_one);
@@ -339,10 +339,10 @@ namespace DemonGameRules.code
             var fallen_ascension = CreateTrait("fallen_ascension", "trait/fallen_ascension", "end_path_group");
             SetRarityCompat(fallen_ascension, "legendary");
             // （留空）
-            SafeSetStat(ascended_demon.base_stats, strings.S.health, 5000f); // 生命 +3800：坦度略低于道主
-            SafeSetStat(ascended_demon.base_stats, strings.S.damage, 600f); // 伤害 +800：爆发更强
-            SafeSetStat(ascended_demon.base_stats, strings.S.stamina, 300f);  // 体力 +600：强续航
-            SafeSetStat(ascended_demon.base_stats, strings.S.lifespan, 300f);  // 寿命 +600
+            SafeSetStat(fallen_ascension.base_stats, strings.S.health, 5000f); // 生命 +3800：坦度略低于道主
+            SafeSetStat(fallen_ascension.base_stats, strings.S.damage, 600f); // 伤害 +800：爆发更强
+            SafeSetStat(fallen_ascension.base_stats, strings.S.stamina, 300f);  // 体力 +600：强续航
+            SafeSetStat(fallen_ascension.base_stats, strings.S.lifespan, 300f);  // 寿命 +600
             ForbidManualGive(fallen_ascension);
             AssetManager.traits.add(fallen_ascension);
 
