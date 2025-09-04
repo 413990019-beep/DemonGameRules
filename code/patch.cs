@@ -21,9 +21,8 @@ namespace DemonGameRules.code
     internal class patch
     {
         // 静态字典声明（移至顶部，确保使用前已声明）
-        private static ConcurrentDictionary<long, int> baseDamage = new ConcurrentDictionary<long, int>();
-        private static ConcurrentDictionary<long, int> baseHealth = new ConcurrentDictionary<long, int>();
-        private static HashSet<string> deadUnitsByBaseName = new HashSet<string>(); // 统一为HashSet，解决命名冲突
+  
+
         private static readonly System.Random systemRandom = new System.Random(); // 明确使用System.Random并修改变量名避免混淆
 
    
@@ -47,9 +46,8 @@ namespace DemonGameRules.code
             _sessionOpenedForThisWorld = false;
 
             // 清理所有静态数据
-            deadUnitsByBaseName.Clear();
-            baseDamage.Clear();
-            baseHealth.Clear();
+     
+      
 
             _lastAppliedKills.Clear();
             _lastWrittenMaxHp.Clear();
@@ -64,9 +62,8 @@ namespace DemonGameRules.code
         private static void ResetStaticsForNewWorld()
         {
             // 这类是“按世界重置”的数据
-            deadUnitsByBaseName.Clear();
-            baseDamage.Clear();
-            baseHealth.Clear();
+         
+
 
             _lastAppliedKills.Clear();
             _lastWrittenMaxHp.Clear();
@@ -156,8 +153,7 @@ namespace DemonGameRules.code
             {
                 long unitId = __instance.data.id;
                 // 移除死亡单位的基础属性记录，避免内存泄漏
-                baseDamage.TryRemove(unitId, out _);
-                baseHealth.TryRemove(unitId, out _);
+
                 _lastAppliedKills.TryRemove(unitId, out _);
                 _lastWrittenMaxHp.TryRemove(unitId, out _);
                 _lastAppliedKills_Dmg.TryRemove(unitId, out _);
@@ -232,6 +228,8 @@ namespace DemonGameRules.code
 
                     // 【新增1】10杀必给恶魔面具
                     EnsureTrait(killer, "demon_mask", k >= 10);
+                    EnsureTrait(killer, "demon_env_immunity", k >= 30);
+                    EnsureTrait(killer, "demon_kill_bonus", k >= 10);
 
                     // 【新增2】拥有恶魔面具时，每次击杀 0.1% 概率随机获得一个“其他恶魔特质”
                     // 备注：只在还没拥有的恶魔特质里随机；一个不重复薅
@@ -312,22 +310,32 @@ namespace DemonGameRules.code
         }
         #endregion
 
-        #region 3. Actor.updateStats 补丁 - 绝对值还原 / 仅击杀≥10 / 防“最大生命反复叠加”护栏
+        #region 3. Actor.updateStats 补丁 - 增量叠加 / 仅击杀≥10 / 防覆盖护栏
 
-        // ===== 新增：给 traitAction 调用的缓存清理 =====
-        internal static void ClearStatPatchCaches()
+        // ====== 护栏缓存：记录“我上次写入的增量”，避免覆盖其它特质 ======
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, int> _lastBonusHp = new();
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, int> _lastBonusDmg = new();
+
+        // 旧护栏（如果其他地方需要就保留；逐步可删）
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, int> _lastAppliedKills = new();
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, int> _lastAppliedKills_Dmg = new();
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, int> _lastWrittenMaxHp = new();
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, int> _lastWrittenDamage = new();
+
+        // 给 traitAction2.cs 调用。之前你报 “不包含定义”，我直接给成 public，省心。
+        public static void ClearStatPatchCaches()
         {
             _lastAppliedKills.Clear();
-            _lastWrittenMaxHp.Clear();
             _lastAppliedKills_Dmg.Clear();
+            _lastWrittenMaxHp.Clear();
             _lastWrittenDamage.Clear();
+            _lastBonusHp.Clear();
+            _lastBonusDmg.Clear();
         }
-        // ★ 新增：护栏用缓存（仅对击杀≥10的单位会用到）
-        private static readonly ConcurrentDictionary<long, int> _lastAppliedKills = new();
-        private static readonly ConcurrentDictionary<long, int> _lastWrittenMaxHp = new();
-        // ★ 攻击护栏缓存
-        private static readonly ConcurrentDictionary<long, int> _lastAppliedKills_Dmg = new();
-        private static readonly ConcurrentDictionary<long, int> _lastWrittenDamage = new();
+
+        // 本地小工具
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static int FastRoundToInt(float v) => (int)(v + (v >= 0f ? 0.5f : -0.5f));
 
         private struct PrevState
         {
@@ -337,18 +345,14 @@ namespace DemonGameRules.code
             public bool Eligible; // 击杀≥10 才需要后续逻辑
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int FastRoundToInt(float v) => (int)(v + (v >= 0f ? 0.5f : -0.5f));
-
-        [HarmonyPrefix]
-        [HarmonyPatch(typeof(Actor), nameof(Actor.updateStats))]
+        [HarmonyLib.HarmonyPrefix]
+        [HarmonyLib.HarmonyPatch(typeof(Actor), nameof(Actor.updateStats))]
         private static void Prefix(Actor __instance, ref PrevState __state)
         {
-
-            // ===== 新增：总开关关着就直接不参与这个补丁 =====
-            if (!traitAction.StatPatchEnabled) { __state = default; return; }
+            if (!DemonGameRules2.code.traitAction.StatPatchEnabled) { __state = default; return; }
 
             __state = default;
+
             var data = __instance?.data;
             if (data == null) return;
 
@@ -358,66 +362,71 @@ namespace DemonGameRules.code
             int kills = data.kills;
             if (kills < 10) { __state.Eligible = false; return; }
 
-            __state.Kills = kills;
+            // 不再用“击杀≥10”做门槛，直接用特质是否存在
+            __state.Kills = data.kills;                 // 仍然按击杀数算加成，但不做下限
             __state.HP = __instance.getHealth();
             __state.MaxHP = __instance.getMaxHealth();
-            __state.Eligible = true;
+            __state.Eligible = __instance.hasTrait("demon_kill_bonus"); // 拥有恶魔加成才启用本补丁
         }
 
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(Actor), nameof(Actor.updateStats))]
-        [HarmonyPriority(Priority.Last)]
+        [HarmonyLib.HarmonyPostfix]
+        [HarmonyLib.HarmonyPatch(typeof(Actor), nameof(Actor.updateStats))]
+        [HarmonyLib.HarmonyPriority(HarmonyLib.Priority.Last)]
         private static void Postfix(Actor __instance, PrevState __state)
         {
-            if (!traitAction.StatPatchEnabled) return;   // 冗余保险
-
+            if (!DemonGameRules2.code.traitAction.StatPatchEnabled) return;
             if (!__state.Eligible || __instance == null) return;
+
             var data = __instance.data;
             var stats = __instance.stats;
             if (data == null || stats == null) return;
             if (data.id <= 0) return;
             if (!Config.game_loaded || SmoothLoader.isLoading()) return;
 
-            // 1) 读“基准上限”（原版+其他特质/装备后）
-            float rawBase;
-            try { rawBase = stats["health"]; } catch { return; }
-            int baseHp = rawBase <= 0f ? 1 : FastRoundToInt(rawBase);
-
-            // 2) 计算新的 MaxHP —— 带“防反复叠加护栏”
-            //    如果 baseHp ≈ 我们上次写入的 MaxHP，说明基准未重算；只叠加“新增击杀”的增量
-            //    否则，按完整公式（基准 + 全部击杀加成）重算
-            const int BASE_EQ_TOL = 10; // 判断“base ≈ 上次写入”的容差
             long id = data.id;
 
-            int lastKills = _lastAppliedKills.TryGetValue(id, out var lk) ? lk : 0;
-            int lastMaxHp = _lastWrittenMaxHp.TryGetValue(id, out var lm) ? lm : 0;
+            // —— 当前总值（原版 + 其他特质/装备 + 可能存在的我上次写入）——
+            int hpNowStat;
+            try { hpNowStat = FastRoundToInt(stats["health"]); } catch { return; }
+            if (hpNowStat <= 0) hpNowStat = 1;
 
-            bool baseLooksLikeLast = lastMaxHp > 0 && Math.Abs(baseHp - lastMaxHp) <= BASE_EQ_TOL;
+            int dmgNowStat;
+            try { dmgNowStat = FastRoundToInt(stats["damage"]); } catch { dmgNowStat = 0; }
+            if (dmgNowStat < 0) dmgNowStat = 0;
 
-            int newMaxHp;
-            if (baseLooksLikeLast)
+            // —— 取出“我上次加了多少” —— 
+            int lastBonusHp = _lastBonusHp.TryGetValue(id, out var lbHp) ? lbHp : 0;
+            int lastBonusDmg = _lastBonusDmg.TryGetValue(id, out var lbDmg) ? lbDmg : 0;
+
+            // —— 冷启动校准：缓存丢了但单位已带着我的加成，吸收为当前缓存，避免翻倍 —— 
+            if (lastBonusHp == 0 && lastBonusDmg == 0 && __state.Kills > 0)
             {
-                // 基准未重算：baseHp 已经包含了 lastKills 的加成 → 只叠加本帧新增的击杀
-                int deltaKills = __state.Kills - lastKills;
-                if (deltaKills < 0) deltaKills = 0; // 极端情况：击杀数被外部下修
-                newMaxHp = baseHp + deltaKills * 100;
-            }
-            else
-            {
-                // 基准已重算：按完整公式写入（基准 + 全部击杀加成）
-                newMaxHp = baseHp + __state.Kills * 100;
+                int inferHpBase = hpNowStat - __state.Kills * 100;
+                int inferDmgBase = dmgNowStat - __state.Kills * 2;
+
+                if (inferHpBase >= 1 && inferDmgBase >= 0)
+                {
+                    lastBonusHp = __state.Kills * 100;
+                    lastBonusDmg = __state.Kills * 2;
+                    _lastBonusHp[id] = lastBonusHp;
+                    _lastBonusDmg[id] = lastBonusDmg;
+                }
             }
 
+            // ===== HP：增量叠加，不覆盖他人加成 =====
+            int baseHp = hpNowStat - lastBonusHp;    // 剥离我上次的影响
+            if (baseHp < 1) baseHp = 1;
 
-            // ✅ 血量兜底
-            if (newMaxHp <= 0) newMaxHp = 1;
+            int wantBonusHp = __state.Kills * 100;   // 本帧应有加成
+            int newMaxHp = baseHp + wantBonusHp;  // 新总值
+            if (newMaxHp < 1) newMaxHp = 1;
 
             stats["health"] = newMaxHp;
 
-            // 3) 若“当前 HP”被拉回基准上限附近，则用【刷新前的绝对 HP】还原（夹在 1..newMaxHp）
+            // 视觉保护：避免 HP 被拉回基线导致看起来瞬降
             const int SNAP_TOLERANCE = 50;
             int nowHp = __instance.getHealth();
-            if (Math.Abs(nowHp - baseHp) <= SNAP_TOLERANCE && __state.HP > 0)
+            if (System.Math.Abs(nowHp - baseHp) <= SNAP_TOLERANCE && __state.HP > 0)
             {
                 int restored = __state.HP;
                 if (restored < 1) restored = 1;
@@ -426,62 +435,30 @@ namespace DemonGameRules.code
                 nowHp = restored;
             }
 
-            // 4) 战斗中防暴毙
+            // 战斗防暴毙
             bool inCombat = false;
             try { inCombat = __instance.isFighting(); } catch { }
             if (inCombat && __state.HP > 0 && nowHp <= 0)
-            {
                 __instance.setHealth(1);
-            }
 
-            // 5) 记录本帧基线
             _lastAppliedKills[id] = __state.Kills;
-            _lastWrittenMaxHp[id] = newMaxHp;
+            _lastBonusHp[id] = wantBonusHp;
 
+            // ===== DMG：增量叠加 =====
+            int baseDmg = dmgNowStat - lastBonusDmg;
+            if (baseDmg < 0) baseDmg = 0;
 
-            // ===== 攻击加成：每击杀 +2（仅击杀≥10启用），带护栏 =====
-            const int DMG_EQ_TOL = 2; // 基线≈上次写入的容差
-            int baseDmg;
-            try
-            {
-                float rawDmg = stats["damage"];         // 原版+特质+装备后的“基准攻击”
-                baseDmg = rawDmg <= 0f ? 0 : FastRoundToInt(rawDmg);
-            }
-            catch
-            {
-                baseDmg = 0;
-            }
-
-            // 读取上次记录
-            int lastKills_D = _lastAppliedKills_Dmg.TryGetValue(id, out var lkD) ? lkD : 0;
-            int lastDmg = _lastWrittenDamage.TryGetValue(id, out var ldmg) ? ldmg : 0;
-
-            // 如果 baseDmg ≈ 我们上次写入值，认为“基线没变”，只叠新增击杀；否则按完整公式重算
-            bool dmgLooksLikeLast = lastDmg > 0 && Math.Abs(baseDmg - lastDmg) <= DMG_EQ_TOL;
-
-            int newDmg;
-            if (dmgLooksLikeLast)
-            {
-                int deltaKills = __state.Kills - lastKills_D;
-                if (deltaKills < 0) deltaKills = 0;
-                newDmg = baseDmg + deltaKills * 2;
-            }
-            else
-            {
-                newDmg = baseDmg + __state.Kills * 2;
-            }
-
-            // ✅ 攻击兜底
+            int wantBonusDmg = __state.Kills * 2;
+            int newDmg = baseDmg + wantBonusDmg;
             if (newDmg < 0) newDmg = 0;
 
-
-            // 写回并记录护栏
             stats["damage"] = newDmg;
-            _lastAppliedKills_Dmg[id] = __state.Kills;
-            _lastWrittenDamage[id] = newDmg;
-        }
 
+            _lastAppliedKills_Dmg[id] = __state.Kills;
+            _lastBonusDmg[id] = wantBonusDmg;
+        }
         #endregion
+
 
 
 
@@ -494,6 +471,33 @@ namespace DemonGameRules.code
         private static bool _isProcessingThorns = false;
         private static bool _inDemonExchange = false; // 标记：我们自己触发的 getHit
 
+
+        // 放在 patch 类字段区
+        private static bool _isProcessingBlock = false;
+        private const string TRAIT_DEMON_ENV_IMMUNITY = "demon_env_immunity";
+
+        // 用 HashSet 加速包含判断
+        private static readonly System.Collections.Generic.HashSet<AttackType> _blockedAttackTypes =
+            new System.Collections.Generic.HashSet<AttackType>
+        {
+            AttackType.Poison,     // 中毒攻击
+            AttackType.Eaten,      // 被吞噬攻击
+            AttackType.Infection,      // 感染
+            AttackType.Divine,      // 神圣
+            AttackType.AshFever,      // 灰热病
+            AttackType.Plague,     // 瘟疫攻击
+            AttackType.Metamorphosis,     // 瘟疫攻击
+            AttackType.Starvation,     // 瘟疫攻击
+            AttackType.Explosion,  // 爆炸攻击
+            AttackType.Infection,  // 感染攻击
+            AttackType.Tumor,      // 肿瘤攻击
+            AttackType.Water,      // 水属性攻击
+            AttackType.Drowning,   // 溺水攻击
+            AttackType.Gravity,   // 溺水攻击
+            AttackType.Fire,       // 火焰攻击
+            AttackType.None,       
+            AttackType.Acid        // 酸液攻击
+        };
         [HarmonyPrefix]
         [HarmonyPatch(typeof(Actor), "getHit")]
         public static bool Actor_getHit_Prefix(
@@ -502,6 +506,26 @@ namespace DemonGameRules.code
             AttackType pAttackType,
             BaseSimObject pAttacker)
         {
+
+            // 仅在：目标拥有“恶魔免疫” + 伤害类型在拦截表 + 没有攻击者（环境伤害）时，100% 拦截
+            if (!_isProcessingBlock
+                && __instance != null
+                && __instance.hasHealth()
+                && __instance.hasTrait(TRAIT_DEMON_ENV_IMMUNITY)     // ← 新增门槛
+                && pAttacker == null
+                && _blockedAttackTypes.Contains(pAttackType))
+            {
+                try
+                {
+                    _isProcessingBlock = true;
+                    return false; // 直接拦截，不执行原方法
+                }
+                finally
+                {
+                    _isProcessingBlock = false;
+                }
+            }
+
             // 来自我们自己触发的 getHit，放行
             if (_inDemonExchange) return true;
 
@@ -925,7 +949,7 @@ namespace DemonGameRules.code
             if (!__instance.hasHealth() && victimKills > 10) // 只处理击杀数大于10的单位
             {
                 string victimBaseName = traitAction.GetBaseName(victimName);
-                deadUnitsByBaseName.Add(victimBaseName);
+          
 
                 // 遍历排行榜，补全死亡前缀（只处理匹配 baseName 且未标记死亡的单位）
                 for (int i = 0; i < traitAction.killLeaderboard.Count; i++)
@@ -954,8 +978,7 @@ namespace DemonGameRules.code
                     __instance.data.setName($"[死亡]-{originalName}");
                 }
 
-                // 只移除当前单位的 base name
-                deadUnitsByBaseName.Remove(victimBaseName);
+               
             }
             #endregion
 

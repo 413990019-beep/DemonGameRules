@@ -247,6 +247,18 @@
     "trait_rogue_guarded_tooltip": "Small increase to max health.",
     "trait_rogue_guarded_info": "Small increase to max health.",
 
+    "trait_demon_env_immunity": "Demon Immunity",
+    "trait_demon_env_immunity_desc": "Immune to most environmental damage (e.g., fire, cold, burning, toxic gas, acid rain, lightning).",
+    "trait_demon_env_immunity_description": "Immune to most environmental damage (e.g., fire, cold, burning, toxic gas, acid rain, lightning).",
+    "trait_demon_env_immunity_tooltip": "Immune to environmental damage.",
+    "trait_demon_env_immunity_info": "Unaffected by common environmental DoT and burst sources.",
+
+    "trait_demon_kill_bonus": "Demon Boon",
+    "trait_demon_kill_bonus_desc": "Kills grant permanent growth: +100 Max HP and +2 Damage per kill (stacking handled by the mod).",
+    "trait_demon_kill_bonus_description": "Kills grant permanent growth: +100 Max HP and +2 Damage per kill (stacking handled by the mod).",
+    "trait_demon_kill_bonus_tooltip": "+100 Max HP and +2 Damage per kill.",
+    "trait_demon_kill_bonus_info": "Scaling trait whose value accumulates with kills.",
+
     "LOG_TXT": "Write TXT Logs",
     "LOG_TXT Description": "When enabled, world events and system messages are written to TXT files under the logs directory.",
     "LOG_DETAIL": "Detailed Logging",

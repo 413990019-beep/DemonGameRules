@@ -53,6 +53,8 @@ namespace DemonGameRules.code
                 ["demon_frenzy"] = "trait/demon_frenzy",       // 提高面板伤权重
                 ["demon_execute"] = "trait/demon_execute",      // 斩杀加成
                 ["demon_bloodthirst"] = "trait/demon_bloodthirst",  // 提高回血上限
+                ["demon_env_immunity"] = "trait/demon_env_immunity", 
+                ["demon_kill_bonus"] = "trait/demon_kill_bonus", 
                 ["world_eater"] = "trait/world_eater"
             };
 
@@ -160,7 +162,7 @@ namespace DemonGameRules.code
         public static void Init()
         {
             // ====== 道主特质 ======
-            var daozhu = CreateTrait("daozhu", "trait/daozhu", "daozhu_group");
+            var daozhu = CreateTrait("daozhu", "trait/daozhu", "end_path_group");
             SetRarityCompat(daozhu, "legendary");
 
             SafeSetStat(daozhu.base_stats, strings.S.health, 50000f); // 生命上限 +5000：高阈值，持久作战更稳
@@ -176,7 +178,7 @@ namespace DemonGameRules.code
             AssetManager.traits.add(daozhu);
 
             // ====== 飞升恶魔特质 ======
-            var ascended_demon = CreateTrait("ascended_demon", "trait/ascended_demon", "ascended_demon_group");
+            var ascended_demon = CreateTrait("ascended_demon", "trait/ascended_demon", "end_path_group");
             SetRarityCompat(ascended_demon, "legendary");
 
             SafeSetStat(ascended_demon.base_stats, strings.S.health, 38000f); // 生命 +3800：坦度略低于道主
@@ -276,7 +278,7 @@ namespace DemonGameRules.code
             // ====== 非人之境（更高稀有 => 更高强度） ======
 
             // 不朽：偏防御与寿命（第三梯队）
-            var ageless = CreateTrait("ageless", "trait/ageless", "beyond_mortality_group");
+            var ageless = CreateTrait("ageless", "trait/ageless", "end_path_group");
             SetRarityCompat(ageless, "legendary");
             SafeSetStat(ageless.base_stats, strings.S.health, 60000f);
             SafeSetStat(ageless.base_stats, strings.S.damage, 200f);
@@ -288,7 +290,7 @@ namespace DemonGameRules.code
             AssetManager.traits.add(ageless);
 
             // 肉身成圣：极稀有高阈值（第四梯队）
-            var flesh_of_the_divine = CreateTrait("flesh_of_the_divine", "trait/flesh_of_the_divine", "beyond_mortality_group");
+            var flesh_of_the_divine = CreateTrait("flesh_of_the_divine", "trait/flesh_of_the_divine", "end_path_group");
             SetRarityCompat(flesh_of_the_divine, "legendary");
             SafeSetStat(flesh_of_the_divine.base_stats, strings.S.health, 120000f);
             SafeSetStat(flesh_of_the_divine.base_stats, strings.S.damage, 1200f);
@@ -302,7 +304,7 @@ namespace DemonGameRules.code
             AssetManager.traits.add(flesh_of_the_divine);
 
             // 杀戮化身：极稀有（第四梯队，偏进攻）
-            var incarnation_of_slaughter = CreateTrait("incarnation_of_slaughter", "trait/incarnation_of_slaughter", "beyond_mortality_group");
+            var incarnation_of_slaughter = CreateTrait("incarnation_of_slaughter", "trait/incarnation_of_slaughter", "end_path_group");
             SetRarityCompat(incarnation_of_slaughter, "legendary");
             SafeSetStat(incarnation_of_slaughter.base_stats, strings.S.health, 90000f);
             SafeSetStat(incarnation_of_slaughter.base_stats, strings.S.damage, 1500f); // 输出更猛
@@ -316,7 +318,7 @@ namespace DemonGameRules.code
             AssetManager.traits.add(incarnation_of_slaughter);
 
             // 蚀界者：顶级联动（第五梯队；强度天花板，慎重）
-            var world_eater = CreateTrait("world_eater", "trait/world_eater", "beyond_mortality_group");
+            var world_eater = CreateTrait("world_eater", "trait/world_eater", "end_path_group");
             SetRarityCompat(world_eater, "legendary");
             SafeSetStat(world_eater.base_stats, strings.S.health, 200000f);
             SafeSetStat(world_eater.base_stats, strings.S.damage, 2500f);
@@ -528,6 +530,20 @@ namespace DemonGameRules.code
             SetRarityCompat(tDemonBloodthirst, "uncommon");
             //ForbidManualGive(tDemonBloodthirst);
             AssetManager.traits.add(tDemonBloodthirst);
+
+            // E) 恶魔免疫：免疫大部分环境伤害（具体免疫逻辑你自己实现）
+            var tDemonEnvImm = CreateTrait("demon_env_immunity", "trait/demon_env_immunity", "rogue_light_group");
+            SetRarityCompat(tDemonEnvImm, "uncommon");
+            // 如果这是成就/系统特质，不允许手动添加就解注下面一行
+            // ForbidManualGive(tDemonEnvImm);
+            AssetManager.traits.add(tDemonEnvImm);
+
+            // F) 恶魔加成：每击杀 +100 生命、+2 攻击（具体数值叠加你自己实现）
+            var tDemonKillBonus = CreateTrait("demon_kill_bonus", "trait/demon_env_immunity", "rogue_light_group");
+            SetRarityCompat(tDemonKillBonus, "uncommon");
+            // ForbidManualGive(tDemonKillBonus);
+            AssetManager.traits.add(tDemonKillBonus);
+
 
 
 

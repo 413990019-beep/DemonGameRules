@@ -17,10 +17,10 @@ namespace DemonGameRules.code
             
             AddOrUpdateGroup("mortal_coil_group", "MORTAL_COIL_GROUP", "#CD7F32"); // 古铜
             AddOrUpdateGroup("destiny_group", "DESTINY_GROUP", "#4169E1"); // 宝蓝
-            AddOrUpdateGroup("beyond_mortality_group", "BEYOND_MORTALITY_GROUP", "#4B0082"); // 靛蓝
+            //AddOrUpdateGroup("beyond_mortality_group", "BEYOND_MORTALITY_GROUP", "#4B0082"); // 靛蓝
             AddOrUpdateGroup("end_path_group", "END_PATH_GROUP", "#FF4500"); // 橙红
-            AddOrUpdateGroup("daozhu_group", "DAOZHU_GROUP", "#FFD700"); // 金色
-            AddOrUpdateGroup("ascended_demon_group", "ASCENDED_DEMON_GROUP", "#8B0000"); // 暗红
+            //AddOrUpdateGroup("daozhu_group", "DAOZHU_GROUP", "#FFD700"); // 金色
+            //AddOrUpdateGroup("ascended_demon_group", "ASCENDED_DEMON_GROUP", "#8B0000"); // 暗红
 
         }
 

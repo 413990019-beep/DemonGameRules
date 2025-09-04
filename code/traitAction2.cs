@@ -23,7 +23,7 @@ namespace DemonGameRules2.code
         // —— 配置区：黑名单、核心包、附加包 ——
         private static readonly string[] _traitsToRemove = new string[]
         {
-            "fire_elemental_form", "fenix_born", "metamorphosis_crab",
+            "fire_elemental_form", "fenix_born", "metamorphosis_crab","aquatic",
             "metamorphosis_chicken", "metamorphosis_wolf", "metamorphosis_butterfly",
             "death_grow_tree", "death_grow_plant", "death_grow_mythril", "metamorphosis_sword"
         };
@@ -506,6 +506,21 @@ namespace DemonGameRules2.code
         /// 给 Actor.updateAge Postfix 调用的统一入口。
         /// 这里面做：按战力尝试自动收藏、清理 super_health、50% 处死野生阵营单位。
         /// </summary>
+        /// 
+        // ====== 只清理指定小生物（蜜蜂、蝴蝶、螃蟹、蚂蚱）======
+        // 注意：这里匹配的是 UnitAsset.id（如 "bee","butterfly","crab","grasshopper"）
+        private static readonly HashSet<string> _crittersToCull =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "bee", "butterfly", "crab", "grasshopper" };
+
+        // 可读性：判断一个单位是否在“可清理小生物”列表内
+        private static bool IsCullTarget(Actor a)
+        {
+            // 保险起见做空判断
+            var id = a?.asset?.id;
+            if (string.IsNullOrEmpty(id)) return false;
+            return _crittersToCull.Contains(id);
+        }
         public static void OnActorAgeTick(Actor a)
         {
             if (a == null || !a.hasHealth())
@@ -521,14 +536,14 @@ namespace DemonGameRules2.code
                 a.removeTrait("super_health");
             }
 
-            // 3) 野生阵营 50% 清理
-            var k = a.kingdom;
-            if (k != null && k.wild)
+            // 2) 只清理指定的小生物（90% 概率，按你原先节奏）
+            if (IsCullTarget(a))
             {
-                // 显式限定 UnityEngine.Random，避免和 System.Random 撞名
-                if (UnityEngine.Random.value < 0.50f)
+                // 显式限定 UnityEngine.Random，避免与 System.Random 冲突
+                if (UnityEngine.Random.value < 0.90f)
                 {
-                    TryKill(a); // 你已有封装
+                    TryKill(a); // 复用你已有的封装
+                    return;
                 }
             }
         }
@@ -706,23 +721,36 @@ namespace DemonGameRules2.code
         #endregion
 
 
-        #region  强杀机制
-        // 放在 traitAction 类里
+        #region 强杀机制（无尸体 / 不计数 / 不日志）
         public static void TryKill(Actor a)
         {
             if (a == null) return;
 
+            // 先尝试调用 Actor 的私有 die(bool, AttackType, bool, bool)
             try
             {
-                // 1) 用一次“超额伤害”走完整的受击/死亡流程
-                float lethal = Mathf.Max(10f, a.getHealth() + a.getMaxHealth() + 99999999f);
-                a.getHit(lethal, true, AttackType.Other, null, false, false, false);
-            }
-            catch { /* 忽略 */ }
+                // 优先用 Harmony 的 AccessTools，参数签名要精确匹配
+                var mi = HarmonyLib.AccessTools.Method(
+                    typeof(Actor),
+                    "die",
+                    new System.Type[] { typeof(bool), typeof(AttackType), typeof(bool), typeof(bool) }
+                );
 
+                if (mi != null)
+                {
+                    // pDestroy=true（不留尸体），pType=Other（中性类型），pCountDeath=false（不计数），pLogFavorite=false（不写收藏日志）
+                    mi.Invoke(a, new object[] { true, AttackType.Other, false, false });
+                    return;
+                }
+            }
+            catch
+            {
+                // 反射失败就走兜底
+            }
+
+            // 兜底：如果还活着，就直接移除（不走死亡流水线）
             try
             {
-                // 2) 如果还没死（比如被某些护栏拦截），直接移除
                 if (a != null && !a.isRekt() && a.hasHealth())
                 {
                     ActionLibrary.removeUnit(a);
@@ -731,6 +759,7 @@ namespace DemonGameRules2.code
             catch { /* 忽略 */ }
         }
         #endregion
+
 
         #region 城市叛乱独立机制
         public static void TryRandomWar()
