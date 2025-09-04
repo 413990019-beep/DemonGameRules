@@ -63,6 +63,25 @@
             "Tooltip": "STAT_PATCH Description",
             "Callback": "DemonGameRules2.code.traitAction:OnStatPatchSwitchChanged"
         },
+        // === 日志：TXT 总开关 ===
+        {
+            "Id": "LOG_TXT",
+            "Type": "SWITCH",
+            "BoolVal": true,
+            "TextVal": "LOG_TXT",
+            "Tooltip": "LOG_TXT Description",
+            "Callback": "DemonGameRules2.code.traitAction:OnTxtLogSwitchChanged"
+        },
+
+        // === 日志：详细信息开关 ===
+        {
+            "Id": "LOG_DETAIL",
+            "Type": "SWITCH",
+            "BoolVal": false,
+            "TextVal": "LOG_DETAIL",
+            "Tooltip": "LOG_DETAIL Description",
+            "Callback": "DemonGameRules2.code.traitAction:OnTxtLogDetailSwitchChanged"
+        },
         {
             "Id": "RESET_LOOP",
             "Type": "SWITCH",

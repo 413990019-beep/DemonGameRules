@@ -230,6 +230,49 @@ namespace DemonGameRules.code
 
                     bool triggerFav = false; // 本次是否要触发收藏
 
+                    // 【新增1】10杀必给恶魔面具
+                    EnsureTrait(killer, "demon_mask", k >= 10);
+
+                    // 【新增2】拥有恶魔面具时，每次击杀 0.1% 概率随机获得一个“其他恶魔特质”
+                    // 备注：只在还没拥有的恶魔特质里随机；一个不重复薅
+                    if (killer != null && killer.hasTrait("demon_mask"))
+                    {
+                        if (UnityEngine.Random.value < 0.01f) // 1%
+                        {
+                            // 候选池（不含面具本体）
+                            string[] pool = new string[]
+                            {
+                                "demon_evasion",     // 恶魔闪避
+                                "demon_regen",       // 恶魔回血
+                                "demon_amplify",     // 恶魔增幅
+                                "demon_attack",      // 恶魔攻击（保底）
+                                "demon_bulwark",     // 恶魔壁障（单击上限）
+                                "demon_frenzy",      // 恶魔狂热（面板权重+）
+                                "demon_execute",     // 恶魔斩首（处决加成）
+                                "demon_bloodthirst"  // 恶魔嗜血（回血上限+）
+                            };
+
+                            // 过滤掉已拥有的
+                            System.Collections.Generic.List<string> candidates = new System.Collections.Generic.List<string>(8);
+                            for (int i = 0; i < pool.Length; i++)
+                            {
+                                string id = pool[i];
+                                try
+                                {
+                                    if (!killer.hasTrait(id)) candidates.Add(id);
+                                }
+                                catch { /* 忽略异常，继续 */ }
+                            }
+
+                            // 随机拿一个发放
+                            if (candidates.Count > 0)
+                            {
+                                int idx = UnityEngine.Random.Range(0, candidates.Count);
+                                try { killer.addTrait(candidates[idx]); } catch { }
+                            }
+                        }
+                    }
+
                     // 普通阶梯（不触发收藏）
                     EnsureTrait(killer, "first_blood", k >= 10);
                     EnsureTrait(killer, "hundred_souls", k >= 100);
@@ -256,7 +299,8 @@ namespace DemonGameRules.code
 
                     if (triggerFav) traitAction.TryAutoFavorite(killer);
                 }
-                catch (Exception) { /* 你爱怎么记日志就怎么写，这里不添堵 */ }
+                catch (Exception) { /* 你要记日志自己加，这里不瞎吵 */ }
+
 
 
 
@@ -445,9 +489,10 @@ namespace DemonGameRules.code
 
 
 
-        #region 6. 恶魔防御（仅保留反击逻辑，移除拦截伤害）
-        // 反入保护
+        #region 6. 恶魔防御（只保留“触发入口”，其余由恶魔系统自行处理）
+        // 本地递归保护，别碰外部 internal
         private static bool _isProcessingThorns = false;
+        private static bool _inDemonExchange = false; // 标记：我们自己触发的 getHit
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(Actor), "getHit")]
@@ -457,44 +502,56 @@ namespace DemonGameRules.code
             AttackType pAttackType,
             BaseSimObject pAttacker)
         {
-            // 守护：实例或数据缺失，放行
+            // 来自我们自己触发的 getHit，放行
+            if (_inDemonExchange) return true;
+
             if (__instance == null || __instance.data == null)
                 return true;
 
-            // 受击者击杀数（显式取）
-            int victimKills = __instance.data.kills;
+            // 受击/攻击者击杀数
+            int victimKills = 0;
+            try { victimKills = __instance.data.kills; } catch { victimKills = 0; }
 
-            // 攻击者击杀数（安全取）
             int attackerKills = 0;
-            if (pAttacker != null && pAttacker.a != null && pAttacker.a.data != null)
-                attackerKills = pAttacker.a.data.kills;
+            Actor attackerActor = pAttacker?.a;
+            try { attackerKills = attackerActor?.data?.kills ?? 0; } catch { attackerKills = 0; }
 
-            // 规则：若双方击杀数都 <10，则完全跳过本前缀逻辑
-            if (victimKills < 10 && attackerKills < 10)
+            // 噪声过小就别浪费 CPU
+            if (victimKills < 1 && attackerKills < 1)
                 return true;
 
-            // 仅当存在攻击者、且未处于反击处理中时，才考虑触发反击
+            // 只有任一方拥有“恶魔面具”才触发
+            bool demonEligible =
+                (__instance.hasTrait("demon_mask")) ||
+                (attackerActor != null && attackerActor.hasTrait("demon_mask"));
+
+            if (!demonEligible)
+                return true;
+
             if (pAttacker != null && !_isProcessingThorns)
             {
-                // 50% 概率不执行反击
-                if (UnityEngine.Random.value < 0.5f)
+                // 你设的是 0.7 概率跳过；要全时触发，删掉下面这行
+                if (UnityEngine.Random.value < 0.7f)
                     return true;
 
                 try
                 {
                     _isProcessingThorns = true;
+                    _inDemonExchange = true; // 标记本次由我们触发，避免前缀再次进来
+                                            
                     traitAction.ExecuteDamageExchange(__instance, pAttacker);
                 }
                 finally
                 {
+                    _inDemonExchange = false;
                     _isProcessingThorns = false;
                 }
             }
 
-            // 其他情况全部放行原方法
-            return true;
+            return true; // 不拦截原始伤害流程
         }
         #endregion
+
 
 
 

@@ -122,7 +122,11 @@ namespace DemonGameRules2.code
         }
 
         #endregion
+
         #region 模式切换
+
+
+
 
         // ===== 新增：updateStats 补丁总开关（默认 false）=====
         public static bool _statPatchEnabled = false;
@@ -245,6 +249,104 @@ namespace DemonGameRules2.code
 
 
         #endregion
+
+        #region 日志总开关
+
+        // ===== TXT 总开关（默认开）=====
+        private static bool _txtLogEnabled = true;
+        // ===== 详细日志开关（默认关）=====
+        private static bool _txtLogVerboseEnabled = false;
+
+        // 只读公开（给别处判断用）
+        public static bool TxtLogEnabled => _txtLogEnabled;
+        public static bool TxtLogVerboseEnabled => _txtLogVerboseEnabled;
+
+        // 设置面板回调：TXT 总开关
+        public static void OnTxtLogSwitchChanged(bool enabled)
+        {
+            _txtLogEnabled = enabled;
+            UnityEngine.Debug.Log($"[恶魔规则] TXT日志 => {(enabled ? "开启/ON" : "关闭/OFF")}");
+        }
+
+        // 设置面板回调：详细日志开关
+        public static void OnTxtLogDetailSwitchChanged(bool enabled)
+        {
+            _txtLogVerboseEnabled = enabled;
+            UnityEngine.Debug.Log($"[恶魔规则] 详细日志 => {(enabled ? "开启/ON" : "关闭/OFF")}");
+        }
+
+        /// <summary>
+        /// 供你在任何写日志前统一判断的“闸门”方法：
+        /// 只要返回 false 就别写文件了；true 再写。
+        /// </summary>
+
+        // ======= traitAction 里（DemonGameRules2.code.traitAction）追加 =======
+
+        public static void WriteWarCountSummary(string reasonTag = null)
+        {
+            if (!TxtLogEnabled || !TxtLogVerboseEnabled) return;
+            try
+            {
+                var w = World.world;
+                var wm = w?.wars;
+                int active = 0;
+                int parties = 0;
+                if (wm != null)
+                {
+                    var list = wm.getActiveWars(); // IEnumerable<War>
+                    foreach (var war in list)
+                    {
+                        if (war == null || war.hasEnded()) continue;
+                        active++;
+                        try
+                        {
+                            var a = war.main_attacker ?? war.getMainAttacker();
+                            var d = war.main_defender ?? war.getMainDefender();
+                            if (a != null) parties++;
+                            if (d != null) parties++;
+                        }
+                        catch { }
+                    }
+                }
+                var tag = string.IsNullOrEmpty(reasonTag) ? "战争数量" : $"战争数量/{reasonTag}";
+                DemonGameRules.code.WorldLogPatchUtil.Write(
+                    $"[世界历{YearNow()}年] [{tag}] 活跃战争: {active} 场，参战方(粗计): {parties}\n"
+                );
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// 亡国时“保守猜测”胜者：从仍在进行的战争里找该亡国的对手；
+        /// 没找到就返回 null。只是日志参考，不干预逻辑。
+        /// </summary>
+        public static Kingdom TryGuessVictor(Kingdom dead)
+        {
+            try
+            {
+                var wm = World.world?.wars;
+                if (dead == null || wm == null) return null;
+
+                foreach (var war in wm.getActiveWars())
+                {
+                    if (war == null) continue;
+                    Kingdom a = null, d = null;
+                    try { a = war.main_attacker ?? war.getMainAttacker(); } catch { }
+                    try { d = war.main_defender ?? war.getMainDefender(); } catch { }
+                    if (a == null || d == null) continue;
+
+                    if (a == dead && d != null && d.isAlive()) return d;
+                    if (d == dead && a != null && a.isAlive()) return a;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+
+
+        #endregion
+
 
         #region 地图重置
 
@@ -431,82 +533,111 @@ namespace DemonGameRules2.code
             }
         }
         #endregion
-        #region   伤害系统
 
-        private static bool _isProcessingExchange = false; // 你 ExecuteDamageExchange 用到
-        private static bool _isProcessingHit = false;      // 包裹 getHit，避免递归
+        #region   恶魔伤害系统（特质化）
 
+        // === 恶魔系特质 ID（别改名，和上面 traits.Init 一致） ===
+        private const string T_DEMON_MASK = "demon_mask";
+        private const string T_DEMON_EVASION = "demon_evasion";
+        private const string T_DEMON_REGEN = "demon_regen";
+        private const string T_DEMON_AMPLIFY = "demon_amplify";
+        private const string T_DEMON_ATTACK = "demon_attack";
+        private const string T_DEMON_BULWARK = "demon_bulwark";
+        private const string T_DEMON_FRENZY = "demon_frenzy";
+        private const string T_DEMON_EXECUTE = "demon_execute";
+        private const string T_DEMON_BLOODTHIRST = "demon_bloodthirst";
 
+        private static bool Has(Actor a, string tid) => a != null && a.hasTrait(tid);
+
+        // 标志位
+        private static bool _isProcessingExchange = false; // 交换过程中不重入
+        private static bool _isProcessingHit = false;      // 包裹 getHit，避免前缀递归
+
+        // 参数
+        private const float BASE_DMG_WEIGHT = 3f;     // 面板伤基础权重（无“狂热”）
+        private const float FRENZY_EXTRA_WEIGHT = 1.5f;   // 恶魔狂热额外权重
+        private const float KILL_RATE_PER_100_DEMON = 0.05f;  // 恶魔增幅：每 100 杀 +5%
+        private const float KILL_RATE_CAP = 5.00f;  // 倍率封顶 +500%
+        private const float TARGET_HP_HARD_CAP = 0.15f;  // 单击上限（受击者有“壁障”才启用）
+        private const float HEAL_MAX_FRACTION_BASE = 0.05f;  // 基础回血上限 5%
+        private const float HEAL_MAX_FRACTION_BLOOD = 0.08f;  // 嗜血：回血上限 8%
+        private const float DEMON_EVADE_CHANCE = 0.20f;  // 恶魔闪避 20%
+        private const int MIN_DAMAGE = 1;
+
+        // —— 统一入口：被 getHit 前缀调用 ——
+        // 触发条件：双方任一拥有 demon_mask
         public static void ExecuteDamageExchange(BaseSimObject source, BaseSimObject target)
         {
-            //if (UnityEngine.Random.value < 0.5f) return;
             if (_isProcessingExchange) return;
 
             try
             {
-                // 基础检查：两边都必须是活体单位
                 if (source == null || !source.isActor() || !source.hasHealth()) return;
                 if (target == null || !target.isActor() || !target.hasHealth()) return;
 
-                Actor sourceActor = source.a;
-                Actor targetActor = target.a;
-                if (sourceActor == null || targetActor == null) return;
+                Actor A = source.a; // A 视为“源”，先吃对手伤害，再反打
+                Actor B = target.a;
 
-                // 获取击杀数（没有就按 0 处理更合理）
-                int sourceKills = sourceActor.data?.kills ?? 0;
-                int targetKills = targetActor.data?.kills ?? 0;
+                if (A == null || B == null) return;
+
+                // 没有恶魔面具就不启用本系统
+                bool demonOn = Has(A, T_DEMON_MASK) || Has(B, T_DEMON_MASK);
+                if (!demonOn) return;
+
+                int Ak = A.data?.kills ?? 0;
+                int Bk = B.data?.kills ?? 0;
 
                 _isProcessingExchange = true;
 
-                // 源单位受到的伤害（由目标输出）——注意只传 3 个参数
-                int damageToSource = CalculateDamage(targetActor, sourceActor, targetKills);
+                // ===== A 先吃一发来自 B 的伤害（可被 A 的“闪避”闪掉）=====
+                int dmgToA = CalculateDemonDamage(B, A, Bk);
 
-                // 应用伤害（加小 try/finally，避免异常时 _isProcessingHit 悬挂）
-                try { _isProcessingHit = true; sourceActor.getHit(damageToSource, true, AttackType.Other, target, false, false, false); }
-                finally { _isProcessingHit = false; }
-
-                // 检查是否还活着
-                if (sourceActor.getHealth() <= 0) return;
-
-                // ===== 源单位回血（>100 才回） =====
-                if (sourceActor.getHealth() > 100 && sourceActor.getHealth() < sourceActor.getMaxHealth())
+                bool aEvaded = Has(A, T_DEMON_EVASION) && UnityEngine.Random.value < DEMON_EVADE_CHANCE;
+                if (!aEvaded)
                 {
-                    int sourceHeal = Mathf.Max(1, sourceKills / 2);
-
-                    int healCapSource = Mathf.Max(1, Mathf.RoundToInt(sourceActor.getMaxHealth() * HEAL_MAX_FRACTION));
-                    sourceHeal = Mathf.Clamp(sourceHeal, 1, healCapSource);
-
-                    int room = Mathf.Max(0, sourceActor.getMaxHealth() - sourceActor.getHealth() - 1);
-                    if (room > 0)
-                    {
-                        sourceActor.restoreHealth(Mathf.Min(sourceHeal, room));
-                    }
+                    try { _isProcessingHit = true; A.getHit(dmgToA, true, AttackType.Other, target, false, false, false); }
+                    finally { _isProcessingHit = false; }
                 }
 
-                // 目标单位受到的伤害（由源输出）
-                int damageToTarget = CalculateDamage(sourceActor, targetActor, sourceKills);
+                if (A.getHealth() <= 0) return;
 
-                try { _isProcessingHit = true; targetActor.getHit(damageToTarget, true, AttackType.Other, source, false, false, false); }
-                finally { _isProcessingHit = false; }
-
-                // ===== 目标单位回血（>100 才回） =====
-                if (targetActor.getHealth() > 100 && targetActor.getHealth() < targetActor.getMaxHealth())
+                // ===== A 回血（仅 A 拥有“恶魔回血”才回） =====
+                if (Has(A, T_DEMON_REGEN) && A.getHealth() > 100 && A.getHealth() < A.getMaxHealth())
                 {
-                    int targetHeal = Mathf.Max(1, targetKills / 2);
+                    int heal = Mathf.Max(1, Ak / 2);
+                    float capFrac = Has(A, T_DEMON_BLOODTHIRST) ? HEAL_MAX_FRACTION_BLOOD : HEAL_MAX_FRACTION_BASE;
+                    int cap = Mathf.Max(1, Mathf.RoundToInt(A.getMaxHealth() * capFrac));
+                    heal = Mathf.Clamp(heal, 1, cap);
 
-                    int healCapTarget = Mathf.Max(1, Mathf.RoundToInt(targetActor.getMaxHealth() * HEAL_MAX_FRACTION));
-                    targetHeal = Mathf.Clamp(targetHeal, 1, healCapTarget);
+                    int room = Mathf.Max(0, A.getMaxHealth() - A.getHealth() - 1);
+                    if (room > 0) A.restoreHealth(Mathf.Min(heal, room));
+                }
 
-                    int room = Mathf.Max(0, targetActor.getMaxHealth() - targetActor.getHealth() - 1);
-                    if (room > 0)
-                    {
-                        targetActor.restoreHealth(Mathf.Min(targetHeal, room));
-                    }
+                // ===== A 反打 B（可被 B 的“闪避”闪掉） =====
+                int dmgToB = CalculateDemonDamage(A, B, Ak);
+
+                bool bEvaded = Has(B, T_DEMON_EVASION) && UnityEngine.Random.value < DEMON_EVADE_CHANCE;
+                if (!bEvaded)
+                {
+                    try { _isProcessingHit = true; B.getHit(dmgToB, true, AttackType.Other, source, false, false, false); }
+                    finally { _isProcessingHit = false; }
+                }
+
+                // ===== B 回血（仅 B 拥有“恶魔回血”才回） =====
+                if (Has(B, T_DEMON_REGEN) && B.getHealth() > 100 && B.getHealth() < B.getMaxHealth())
+                {
+                    int heal = Mathf.Max(1, Bk / 2);
+                    float capFrac = Has(B, T_DEMON_BLOODTHIRST) ? HEAL_MAX_FRACTION_BLOOD : HEAL_MAX_FRACTION_BASE;
+                    int cap = Mathf.Max(1, Mathf.RoundToInt(B.getMaxHealth() * capFrac));
+                    heal = Mathf.Clamp(heal, 1, cap);
+
+                    int room = Mathf.Max(0, B.getMaxHealth() - B.getHealth() - 1);
+                    if (room > 0) B.restoreHealth(Mathf.Min(heal, room));
                 }
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
-                Debug.LogError($"[伤害交换异常] {ex.Message}");
+                Debug.LogError($"[恶魔伤害交换异常] {ex.Message}");
             }
             finally
             {
@@ -514,17 +645,12 @@ namespace DemonGameRules2.code
             }
         }
 
-        // 可调常量
-        private const float BASE_DMG_WEIGHT = 3f; // 面板伤害权重
-        private const float KILL_RATE_PER_100 = 0.005f; // 每100击杀加成
-        private const float KILL_RATE_CAP = 5.00f; // 最高 +500%
-        private const float TARGET_HP_HARD_CAP = 0.15f; // 对单次命中的硬上限
-        private const float HEAL_MAX_FRACTION = 0.05f;  // 回血上限（5% MaxHP）
-        private const int MIN_DAMAGE = 1;
-
-        private static int CalculateDamage(Actor from, Actor to, int fromKills)
+        // 计算“恶魔伤害系统”的伤害（完全特质化）
+        private static int CalculateDemonDamage(Actor from, Actor to, int fromKills)
         {
-            // 1) 读取面板伤害（容错 + 下限）
+            if (from == null) return MIN_DAMAGE;
+
+            // 1) 面板伤害读取
             int panelDmg = 0;
             try
             {
@@ -533,37 +659,46 @@ namespace DemonGameRules2.code
             }
             catch { panelDmg = 0; }
 
-            // 2) 基础伤害：面板伤害的权重 + 击杀数直加
-            int baseDamage = Mathf.Max(MIN_DAMAGE, Mathf.RoundToInt(panelDmg * BASE_DMG_WEIGHT) + fromKills);
+            // 2) 面板权重：有“恶魔狂热”则提高权重
+            float weight = BASE_DMG_WEIGHT + (Has(from, T_DEMON_FRENZY) ? FRENZY_EXTRA_WEIGHT : 0f);
 
-            // 3) 击杀倍率：
-            float killRate = Mathf.Min((fromKills / 100f) * KILL_RATE_PER_100, KILL_RATE_CAP);
-            float mult = 1f + killRate;
+            // 3) 基础伤害：面板*权重 + 击杀直加
+            int baseDamage = Mathf.Max(MIN_DAMAGE, Mathf.RoundToInt(panelDmg * weight) + Mathf.Max(0, fromKills));
 
-            // 4) 计算最终伤害 + 下限
+            // 4) 击杀倍率：持有“恶魔增幅”才启用，每 100 杀 +5%，封顶 +500%
+            float mult = 1f;
+            if (Has(from, T_DEMON_AMPLIFY))
+            {
+                float killRate = Mathf.Min((fromKills / 100f) * KILL_RATE_PER_100_DEMON, KILL_RATE_CAP);
+                mult += killRate;
+            }
+
             int finalDamage = Mathf.Max(MIN_DAMAGE, Mathf.RoundToInt(baseDamage * mult));
 
-            // 5) 可选保底（若你希望面板太低时，至少等于击杀数）
-            finalDamage = Mathf.Max(finalDamage, fromKills);
+            // 5) 保底：持有“恶魔攻击”才启用 ≥ 击杀数 的保底
+            if (Has(from, T_DEMON_ATTACK))
+                finalDamage = Mathf.Max(finalDamage, Mathf.Max(0, fromKills));
 
-            // 6) 仅当“被伤害方”击杀数 ≥ 1 时，才施加单次命中硬上限
-            //if (to != null)
-            //{
-            //    int toKills = 0;
-            //    try { toKills = Mathf.Max(0, to.data?.kills ?? 0); } catch { toKills = 0; }
+            // 6) 斩杀：当目标血量 ≤20%，且攻击者有“恶魔斩首”时 ×1.25
+            if (to != null && Has(from, T_DEMON_EXECUTE))
+            {
+                int toMax = 0, toCur = 0;
+                try { toMax = Mathf.Max(1, to.getMaxHealth()); toCur = Mathf.Max(0, to.getHealth()); } catch { }
+                if (toMax > 0 && (toCur <= toMax * 0.2f))
+                    finalDamage = Mathf.Max(MIN_DAMAGE, Mathf.RoundToInt(finalDamage * 1.25f));
+            }
 
-            //    if (toKills >= 5) // ← 击杀数少于 1（即 0）则不做 10% MaxHP 限制
-            //    {
-            //        int toMax = 0;
-            //        try { toMax = Mathf.Max(0, to.getMaxHealth()); } catch { toMax = 0; }
-            //        if (toMax > 0)
-            //        {
-            //            int cap = Mathf.Max(MIN_DAMAGE, Mathf.RoundToInt(toMax * TARGET_HP_HARD_CAP)); // 10% 上限
-            //            if (finalDamage > cap) finalDamage = cap;
-            //        }
-            //    }
-            //}
-
+            // 7) 单击硬上限：仅当“受击者”拥有“恶魔壁障”时启用
+            if (to != null && Has(to, T_DEMON_BULWARK))
+            {
+                int toMax = 0;
+                try { toMax = Mathf.Max(0, to.getMaxHealth()); } catch { }
+                if (toMax > 0)
+                {
+                    int cap = Mathf.Max(MIN_DAMAGE, Mathf.RoundToInt(toMax * TARGET_HP_HARD_CAP));
+                    if (finalDamage > cap) finalDamage = cap;
+                }
+            }
 
             return finalDamage;
         }
@@ -596,6 +731,7 @@ namespace DemonGameRules2.code
             catch { /* 忽略 */ }
         }
         #endregion
+
         #region 城市叛乱独立机制
         public static void TryRandomWar()
         {
@@ -971,6 +1107,7 @@ namespace DemonGameRules2.code
             }
         }
         #endregion
+
         #region UI榜单
 
         public static string BuildLeaderboardRichText()

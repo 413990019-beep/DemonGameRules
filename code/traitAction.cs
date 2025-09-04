@@ -548,6 +548,8 @@ namespace DemonGameRules2.code
         /// </summary>
         public static void InitializeNewSessionFile()
         {
+
+            if (!_txtLogEnabled) return;
             try
             {
                 // 确保目录存在
@@ -583,6 +585,8 @@ namespace DemonGameRules2.code
         /// </summary>
         public static void WriteLeaderboardToFile(string content)
         {
+            if (!_txtLogEnabled) return;
+
             if (string.IsNullOrEmpty(currentSessionFile)) return;
 
             try
@@ -607,6 +611,7 @@ namespace DemonGameRules2.code
         /// </summary>
         private static string GeneratePlainTextLeaderboard(int globalLivingCount, int year)
         {
+
             StringBuilder sb = new StringBuilder();
 
             // 添加记录时间戳
@@ -1777,6 +1782,8 @@ namespace DemonGameRules2.code
         // ==== 存档相关（放在 traitAction 内） ====
         public static void WriteWorldEventSilently(string line)
         {
+
+            if (!_txtLogEnabled) return;
             try
             {
                 if (string.IsNullOrEmpty(currentSessionFile))
@@ -1796,6 +1803,7 @@ namespace DemonGameRules2.code
 
         public static void SetSaveSlot(string slot)
         {
+            if (!_txtLogEnabled) return;
             // 只记录槽位名，避免覆盖“新局时间戳文件”
             _saveSlotName = string.IsNullOrWhiteSpace(slot) ? "slot"
                             : string.Concat(slot.Select(ch => System.IO.Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch));
@@ -1811,6 +1819,8 @@ namespace DemonGameRules2.code
         // 每次开新局都新建一个全新的 txt（按槽位分文件夹）
         public static void BeginNewGameSession(string slotDisplayName)
         {
+            if (!_txtLogEnabled) return;
+
             try
             {
 

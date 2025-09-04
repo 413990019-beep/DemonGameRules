@@ -44,6 +44,15 @@ namespace DemonGameRules.code
                 ["rogue_tough"] = "trait/rogue_tough",
                 ["thousand_kill"] = "trait/thousand_kill",
                 ["whispers_from_the_abyss"] = "trait/whispers_from_the_abyss",
+                ["demon_mask"] = "trait/demon_mask",
+                ["demon_evasion"] = "trait/demon_evasion",
+                ["demon_regen"] = "trait/demon_regen",
+                ["demon_amplify"] = "trait/demon_amplify",
+                ["demon_attack"] = "trait/demon_attack",
+                ["demon_bulwark"] = "trait/demon_bulwark",      // 单击硬上限（受击者持有才生效）
+                ["demon_frenzy"] = "trait/demon_frenzy",       // 提高面板伤权重
+                ["demon_execute"] = "trait/demon_execute",      // 斩杀加成
+                ["demon_bloodthirst"] = "trait/demon_bloodthirst",  // 提高回血上限
                 ["world_eater"] = "trait/world_eater"
             };
 
@@ -461,6 +470,64 @@ namespace DemonGameRules.code
             SetRarityCompat(tHealOnKill, "uncommon");
 
             AssetManager.traits.add(tHealOnKill);
+
+            // ===== 恶魔系·伤害系统开关与修饰（rogue_light_group） =====
+
+            // 1) 恶魔面具：拥有者与其对手将触发“恶魔伤害系统”
+            var tDemonMask = CreateTrait("demon_mask", "trait/daozhu", "rogue_light_group");
+            SetRarityCompat(tDemonMask, "uncommon");
+            //ForbidManualGive(tDemonMask);
+            AssetManager.traits.add(tDemonMask);
+
+            // 2) 恶魔闪避：20% 闪避“恶魔伤害系统”的命中
+            var tDemonEvasion = CreateTrait("demon_evasion", "trait/daozhu", "rogue_light_group");
+            SetRarityCompat(tDemonEvasion, "uncommon");
+            //ForbidManualGive(tDemonEvasion);
+            AssetManager.traits.add(tDemonEvasion);
+
+            // 3) 恶魔回血：拥有者才享受系统内的战后回血
+            var tDemonRegen = CreateTrait("demon_regen", "trait/daozhu", "rogue_light_group");
+            SetRarityCompat(tDemonRegen, "uncommon");
+            //ForbidManualGive(tDemonRegen);
+            AssetManager.traits.add(tDemonRegen);
+
+            // 4) 恶魔增幅：击杀倍率改为每 100 击杀 +5%（无此特质则无击杀倍率）
+            var tDemonAmplify = CreateTrait("demon_amplify", "trait/daozhu", "rogue_light_group");
+            SetRarityCompat(tDemonAmplify, "uncommon");
+            //ForbidManualGive(tDemonAmplify);
+            AssetManager.traits.add(tDemonAmplify);
+
+            // 5) 恶魔攻击：单击最少造成“自身击杀数”的伤害保底
+            var tDemonAttack = CreateTrait("demon_attack", "trait/daozhu", "rogue_light_group");
+            SetRarityCompat(tDemonAttack, "uncommon");
+            //ForbidManualGive(tDemonAttack);
+            AssetManager.traits.add(tDemonAttack);
+
+            // —— 发挥的几个开关（可选，不给也不影响主逻辑） ——
+
+            // A) 恶魔壁障：受击者拥有则对单击施加硬上限（默认 15% MaxHP）
+            var tDemonBulwark = CreateTrait("demon_bulwark", "trait/daozhu", "rogue_light_group");
+            SetRarityCompat(tDemonBulwark, "uncommon");
+            //ForbidManualGive(tDemonBulwark);
+            AssetManager.traits.add(tDemonBulwark);
+
+            // B) 恶魔狂热：提高面板伤的权重（3 → 4.5）
+            var tDemonFrenzy = CreateTrait("demon_frenzy", "trait/daozhu", "rogue_light_group");
+            SetRarityCompat(tDemonFrenzy, "uncommon");
+            //ForbidManualGive(tDemonFrenzy);
+            AssetManager.traits.add(tDemonFrenzy);
+
+            // C) 恶魔斩首：当目标血量 ≤20% 时，本次伤害额外 ×1.25
+            var tDemonExecute = CreateTrait("demon_execute", "trait/daozhu", "rogue_light_group");
+            SetRarityCompat(tDemonExecute, "uncommon");
+            //ForbidManualGive(tDemonExecute);
+            AssetManager.traits.add(tDemonExecute);
+
+            // D) 恶魔嗜血：把系统内“回血上限”从 5% 提到 8%
+            var tDemonBloodthirst = CreateTrait("demon_bloodthirst", "trait/daozhu", "rogue_light_group");
+            SetRarityCompat(tDemonBloodthirst, "uncommon");
+            //ForbidManualGive(tDemonBloodthirst);
+            AssetManager.traits.add(tDemonBloodthirst);
 
 
 

@@ -192,10 +192,74 @@
     "trait_rogue_guarded_tooltip": "生命上限小幅提升。",
     "trait_rogue_guarded_info": "生命上限小幅提升。",
 
+    "trait_demon_mask": "恶魔面具",
+    "trait_demon_mask_desc": "拥有该特质才会触发恶魔伤害系统。",
+    "trait_demon_mask_description": "拥有该特质才会触发恶魔伤害系统。",
+    "trait_demon_mask_tooltip": "拥有该特质才会触发恶魔伤害系统。",
+    "trait_demon_mask_info": "拥有该特质才会触发恶魔伤害系统。",
+
+    "trait_demon_evasion": "恶魔闪避",
+    "trait_demon_evasion_desc": "有20%几率闪避恶魔伤害系统内的命中。",
+    "trait_demon_evasion_description": "有20%几率闪避恶魔伤害系统内的命中。",
+    "trait_demon_evasion_tooltip": "20%几率闪避恶魔伤害。",
+    "trait_demon_evasion_info": "20%几率闪避恶魔伤害。",
+
+    "trait_demon_regen": "恶魔回血",
+    "trait_demon_regen_desc": "启用恶魔伤害系统的战后回复。",
+    "trait_demon_regen_description": "启用恶魔伤害系统的战后回复。",
+    "trait_demon_regen_tooltip": "参与恶魔伤害系统时按规则回复生命。",
+    "trait_demon_regen_info": "参与恶魔伤害系统时按规则回复生命。",
+
+    "trait_demon_amplify": "恶魔增幅",
+    "trait_demon_amplify_desc": "启用击杀倍率：每100击杀+5%，上限+500%。",
+    "trait_demon_amplify_description": "启用击杀倍率：每100击杀+5%，上限+500%。",
+    "trait_demon_amplify_tooltip": "每100击杀+5%伤害（封顶+500%）。",
+    "trait_demon_amplify_info": "每100击杀+5%伤害（封顶+500%）。",
+
+    "trait_demon_attack": "恶魔攻击",
+    "trait_demon_attack_desc": "恶魔伤害的单次命中至少等于自身击杀数。",
+    "trait_demon_attack_description": "恶魔伤害的单次命中至少等于自身击杀数。",
+    "trait_demon_attack_tooltip": "伤害保底≥击杀数。",
+    "trait_demon_attack_info": "伤害保底≥击杀数。",
+
+    "trait_demon_bulwark": "恶魔壁障",
+    "trait_demon_bulwark_desc": "被恶魔伤害命中时，单次伤害≤最大生命的15%。",
+    "trait_demon_bulwark_description": "被恶魔伤害命中时，单次伤害≤最大生命的15%。",
+    "trait_demon_bulwark_tooltip": "单次伤害封顶15%最大生命。",
+    "trait_demon_bulwark_info": "单次伤害封顶15%最大生命。",
+
+    "trait_demon_frenzy": "恶魔狂热",
+    "trait_demon_frenzy_desc": "提高面板伤害权重（+1.5）。",
+    "trait_demon_frenzy_description": "提高面板伤害权重（+1.5）。",
+    "trait_demon_frenzy_tooltip": "面板伤害权重提升。",
+    "trait_demon_frenzy_info": "面板伤害权重提升。",
+
+    "trait_demon_execute": "恶魔斩首",
+    "trait_demon_execute_desc": "目标生命≤20%时，本次恶魔伤害×1.25。",
+    "trait_demon_execute_description": "目标生命≤20%时，本次恶魔伤害×1.25。",
+    "trait_demon_execute_tooltip": "处决线20%，伤害×1.25。",
+    "trait_demon_execute_info": "处决线20%，伤害×1.25。",
+
+    "trait_demon_bloodthirst": "恶魔嗜血",
+    "trait_demon_bloodthirst_desc": "恶魔伤害系统的生命回复上限从5%提升到8%。",
+    "trait_demon_bloodthirst_description": "恶魔伤害系统的生命回复上限从5%提升到8%。",
+    "trait_demon_bloodthirst_tooltip": "回血上限8%最大生命。",
+    "trait_demon_bloodthirst_info": "回血上限8%最大生命。",
+
+    "LOG_TXT": "记录TXT日志",
+    "LOG_TXT Description": "开启后，将把世界事件和系统信息写入 logs 目录下的 TXT 文件。",
+    "LOG_DETAIL": "记录详细信息",
+    "LOG_DETAIL Description": "需先开启记录TXT日志，在日志中追加更详细的数据（国王、领主、弑君事件、城市事件、天灾和战争结果等等）。",
+
+
+
     "trait_rogue_heal_on_kill": "击杀回春",
     "trait_rogue_heal_on_kill_desc": "击杀后回复少量生命。",
     "trait_rogue_heal_on_kill_description": "击杀后回复少量生命。",
     "trait_rogue_heal_on_kill_tooltip": "击杀后回复少量生命。",
     "trait_rogue_heal_on_kill_info": "击杀后回复少量生命。"
+
+
+
 
 }

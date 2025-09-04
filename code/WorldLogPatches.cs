@@ -8,6 +8,8 @@ using System.Text.RegularExpressions;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using HarmonyLib;
+using UnityEngine;
+using TA = DemonGameRules2.code.traitAction;
 
 namespace DemonGameRules.code
 {
@@ -88,39 +90,216 @@ namespace DemonGameRules.code
 
     #region 显式入口：建城/毁城/叛乱/建国/亡国/宣战(WorldLog 形态)
 
-    //// 建城
-    //[HarmonyPatch]
-    //internal static class WL_logNewCity_Post
-    //{
-    //    static bool Prepare() =>
-    //        AccessTools.Method(typeof(WorldLog), nameof(WorldLog.logNewCity), new Type[] { typeof(City) }) != null;
+    // ------------- 王权变更：新王登基 / 离任 / 死亡 / 遇害 -------------
 
-    //    [HarmonyPostfix]
-    //    [HarmonyPatch(typeof(WorldLog), nameof(WorldLog.logNewCity), new Type[] { typeof(City) })]
-    //    static void Postfix(City __0)
-    //    {
-    //        var pCity = __0;
-    //        if (pCity == null) return;
-    //        WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("建城", $"{WorldLogPatchUtil.C(pCity)} @ {WorldLogPatchUtil.K(pCity.kingdom)}"));
-    //    }
-    //}
+    [HarmonyPatch]
+    internal static class WL_logNewKing_Post
+    {
+        static bool Prepare() =>
+            AccessTools.Method(typeof(WorldLog), nameof(WorldLog.logNewKing), new Type[] { typeof(Kingdom) }) != null;
 
-    //// 毁城
-    //[HarmonyPatch]
-    //internal static class WL_logCityDestroyed_Post
-    //{
-    //    static bool Prepare() =>
-    //        AccessTools.Method(typeof(WorldLog), nameof(WorldLog.logCityDestroyed), new Type[] { typeof(City) }) != null;
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(WorldLog), nameof(WorldLog.logNewKing), new Type[] { typeof(Kingdom) })]
+        static void Postfix(Kingdom __0)
+        {
+            if (!TA.TxtLogEnabled || !TA.TxtLogVerboseEnabled) return;
+            var k = __0;
+            if (k == null) return;
+            Actor king = null;
+            try { king = k.king; } catch { }
+            var who = king != null ? WorldLogPatchUtil.U(king) : "新王";
+            WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("新王登基", $"{WorldLogPatchUtil.K(k)} => {who}"));
+            TA.WriteWarCountSummary("king_change");
+        }
+    }
 
-    //    [HarmonyPostfix]
-    //    [HarmonyPatch(typeof(WorldLog), nameof(WorldLog.logCityDestroyed), new Type[] { typeof(City) })]
-    //    static void Postfix(City __0)
-    //    {
-    //        var c = __0;
-    //        if (c == null) return;
-    //        WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("毁城", $"{WorldLogPatchUtil.C(c)} @ {WorldLogPatchUtil.K(c.kingdom)}"));
-    //    }
-    //}
+    [HarmonyPatch]
+    internal static class WL_logKingLeft_Post
+    {
+        static bool Prepare() =>
+            AccessTools.Method(typeof(WorldLog), nameof(WorldLog.logKingLeft), new Type[] { typeof(Kingdom), typeof(Actor) }) != null;
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(WorldLog), nameof(WorldLog.logKingLeft), new Type[] { typeof(Kingdom), typeof(Actor) })]
+        static void Postfix(Kingdom __0, Actor __1)
+        {
+            if (!TA.TxtLogEnabled || !TA.TxtLogVerboseEnabled) return;
+            WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("国王离任", $"{WorldLogPatchUtil.U(__1)} 离开 {WorldLogPatchUtil.K(__0)}"));
+            TA.WriteWarCountSummary("king_left");
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class WL_logKingDead_Post
+    {
+        static bool Prepare() =>
+            AccessTools.Method(typeof(WorldLog), nameof(WorldLog.logKingDead), new Type[] { typeof(Kingdom), typeof(Actor) }) != null;
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(WorldLog), nameof(WorldLog.logKingDead), new Type[] { typeof(Kingdom), typeof(Actor) })]
+        static void Postfix(Kingdom __0, Actor __1)
+        {
+            if (!TA.TxtLogEnabled || !TA.TxtLogVerboseEnabled) return;
+            WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("国王死亡", $"{WorldLogPatchUtil.U(__1)}（{WorldLogPatchUtil.K(__0)}）去世"));
+            TA.WriteWarCountSummary("king_dead");
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class WL_logKingMurder_Post
+    {
+        static bool Prepare() =>
+            AccessTools.Method(typeof(WorldLog), nameof(WorldLog.logKingMurder), new Type[] { typeof(Kingdom), typeof(Actor), typeof(Actor) }) != null;
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(WorldLog), nameof(WorldLog.logKingMurder), new Type[] { typeof(Kingdom), typeof(Actor), typeof(Actor) })]
+        static void Postfix(Kingdom __0, Actor __1, Actor __2)
+        {
+            if (!TA.TxtLogEnabled || !TA.TxtLogVerboseEnabled) return;
+            WorldLogPatchUtil.Write(
+                WorldLogPatchUtil.Stamp("弑君", $"{WorldLogPatchUtil.U(__1)}（{WorldLogPatchUtil.K(__0)}）被 {WorldLogPatchUtil.U(__2)} 弑杀")
+            );
+            TA.WriteWarCountSummary("king_murder");
+        }
+    }
+
+    // ------------- 城主变动：就任 / 离任（City.setLeader / removeLeader） -------------
+
+    [HarmonyPatch]
+    internal static class City_setLeader_Post
+    {
+        static bool Prepare() =>
+            AccessTools.Method(typeof(City), nameof(City.setLeader), new Type[] { typeof(Actor), typeof(bool) }) != null;
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(City), nameof(City.setLeader), new Type[] { typeof(Actor), typeof(bool) })]
+        static void Postfix(City __instance, Actor __0)
+        {
+            if (!TA.TxtLogEnabled || !TA.TxtLogVerboseEnabled) return;
+            if (__instance == null || __0 == null) return;
+            WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("城主就任", $"{WorldLogPatchUtil.C(__instance)} => {WorldLogPatchUtil.U(__0)} @ {WorldLogPatchUtil.K(__instance.kingdom)}"));
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class City_removeLeader_Post
+    {
+        static bool Prepare() =>
+            AccessTools.Method(typeof(City), nameof(City.removeLeader), new Type[] { }) != null;
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(City), nameof(City.removeLeader), new Type[] { })]
+        static void Postfix(City __instance)
+        {
+            if (!TA.TxtLogEnabled || !TA.TxtLogVerboseEnabled) return;
+            if (__instance == null) return;
+            WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("城主离任", $"{WorldLogPatchUtil.C(__instance)} 失去领主 @ {WorldLogPatchUtil.K(__instance.kingdom)}"));
+        }
+    }
+
+    // ----------------- 天灾：WorldLog.logDisaster(...) -------------------
+
+    [HarmonyPatch]
+    internal static class WL_logDisaster_Post
+    {
+        static bool Prepare()
+        {
+            var m = AccessTools.Method(typeof(WorldLog), "logDisaster",
+                new Type[] { typeof(DisasterAsset), typeof(WorldTile), typeof(string), typeof(City), typeof(Actor) });
+            return m != null;
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(WorldLog), "logDisaster",
+            new Type[] { typeof(DisasterAsset), typeof(WorldTile), typeof(string), typeof(City), typeof(Actor) })]
+        static void Postfix(DisasterAsset __0, WorldTile __1, string __2, City __3, Actor __4)
+        {
+            if (!TA.TxtLogEnabled || !TA.TxtLogVerboseEnabled) return;
+            var asset = __0;
+            var tile = __1;
+            var name = __2; // 自定义名字（可能为空）
+            var city = __3;
+            var unit = __4;
+
+            string dName = null;
+            try { dName = !string.IsNullOrEmpty(name) ? name : (asset != null ? asset.id : "灾害"); } catch { dName = "灾害"; }
+
+            string loc = city != null
+                ? $"@ {WorldLogPatchUtil.C(city)}（{WorldLogPatchUtil.K(city.kingdom)}）"
+                : (tile != null ? $"@ ({tile.pos.x},{tile.pos.y})" : "");
+            string who = unit != null ? $" 目标: {WorldLogPatchUtil.U(unit)}" : "";
+
+            WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("天灾", $"{dName} {loc}{who}"));
+        }
+    }
+
+    // --------- 亡国时尝试写“胜者” + 顺手记一次战争数量统计 ----------
+
+    [HarmonyPatch]
+    internal static class WL_logKingdomDestroyed_Expand_Post
+    {
+        static bool Prepare() =>
+            AccessTools.Method(typeof(WorldLog), nameof(WorldLog.logKingdomDestroyed), new Type[] { typeof(Kingdom) }) != null;
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(WorldLog), nameof(WorldLog.logKingdomDestroyed), new Type[] { typeof(Kingdom) })]
+        static void Postfix(Kingdom __0)
+        {
+            if (!TA.TxtLogEnabled || !TA.TxtLogVerboseEnabled) return;
+            var dead = __0;
+            if (dead == null) return;
+
+            var victor = TA.TryGuessVictor(dead);
+            if (victor != null && victor != dead)
+            {
+                WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("亡国-胜败", $"{WorldLogPatchUtil.K(dead)} 灭亡，胜者疑似 {WorldLogPatchUtil.K(victor)}"));
+            }
+            else
+            {
+                WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("亡国-胜败", $"{WorldLogPatchUtil.K(dead)} 灭亡"));
+            }
+
+            TA.WriteWarCountSummary("kingdom_destroyed");
+        }
+    }
+
+
+
+    // 建城
+    [HarmonyPatch]
+    internal static class WL_logNewCity_Post
+    {
+        static bool Prepare() =>
+            AccessTools.Method(typeof(WorldLog), nameof(WorldLog.logNewCity), new Type[] { typeof(City) }) != null;
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(WorldLog), nameof(WorldLog.logNewCity), new Type[] { typeof(City) })]
+        static void Postfix(City __0)
+        {
+            var pCity = __0;
+            if (pCity == null) return;
+            if (!TA.TxtLogEnabled || !TA.TxtLogVerboseEnabled) return;
+            WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("建城", $"{WorldLogPatchUtil.C(pCity)} @ {WorldLogPatchUtil.K(pCity.kingdom)}"));
+        }
+    }
+
+    // 毁城
+    [HarmonyPatch]
+    internal static class WL_logCityDestroyed_Post
+    {
+        static bool Prepare() =>
+            AccessTools.Method(typeof(WorldLog), nameof(WorldLog.logCityDestroyed), new Type[] { typeof(City) }) != null;
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(WorldLog), nameof(WorldLog.logCityDestroyed), new Type[] { typeof(City) })]
+        static void Postfix(City __0)
+        {
+            var c = __0;
+            if (c == null) return;
+            if (!TA.TxtLogEnabled || !TA.TxtLogVerboseEnabled) return;
+            WorldLogPatchUtil.Write(WorldLogPatchUtil.Stamp("毁城", $"{WorldLogPatchUtil.C(c)} @ {WorldLogPatchUtil.K(c.kingdom)}"));
+        }
+    }
 
     // 叛乱
     [HarmonyPatch]
