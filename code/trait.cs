@@ -154,7 +154,7 @@ namespace DemonGameRules.code
             var daozhu = CreateTrait("daozhu", "trait/daozhu", "daozhu_group");
             SetRarityCompat(daozhu, "legendary");
 
-            SafeSetStat(daozhu.base_stats, strings.S.health, 5000f); // 生命上限 +5000：高阈值，持久作战更稳
+            SafeSetStat(daozhu.base_stats, strings.S.health, 50000f); // 生命上限 +5000：高阈值，持久作战更稳
             SafeSetStat(daozhu.base_stats, strings.S.damage, 500f);  // 伤害 +500：稳定高输出
             SafeSetStat(daozhu.base_stats, strings.S.armor, 25f);  // 护甲 +25：减伤更强
             SafeSetStat(daozhu.base_stats, strings.S.critical_chance, 0.15f); // 暴击率 +15%：中等爆发
@@ -170,7 +170,7 @@ namespace DemonGameRules.code
             var ascended_demon = CreateTrait("ascended_demon", "trait/ascended_demon", "ascended_demon_group");
             SetRarityCompat(ascended_demon, "legendary");
 
-            SafeSetStat(ascended_demon.base_stats, strings.S.health, 3800f); // 生命 +3800：坦度略低于道主
+            SafeSetStat(ascended_demon.base_stats, strings.S.health, 38000f); // 生命 +3800：坦度略低于道主
             SafeSetStat(ascended_demon.base_stats, strings.S.damage, 800f); // 伤害 +800：爆发更强
             SafeSetStat(ascended_demon.base_stats, strings.S.armor, 20f); // 护甲 +20：适度减伤
             SafeSetStat(ascended_demon.base_stats, strings.S.critical_chance, 0.25f); // 暴击率 +25%：高爆发
@@ -187,7 +187,7 @@ namespace DemonGameRules.code
             // 10杀：入门增益（第一梯队-小幅）
             var first_blood = CreateTrait("first_blood", "trait/first_blood", "mortal_coil_group");
             SetRarityCompat(first_blood, "common");
-            SafeSetStat(first_blood.base_stats, strings.S.health, 500f);  // 小幅生命
+            SafeSetStat(first_blood.base_stats, strings.S.health, 5000f);  // 小幅生命
             SafeSetStat(first_blood.base_stats, strings.S.damage, 50f);  // 小幅伤害
             SafeSetStat(first_blood.base_stats, strings.S.armor, 5f);  // 少量护甲
             SafeSetStat(first_blood.base_stats, strings.S.critical_chance, 0.03f); // 暴击 +3%
@@ -200,7 +200,7 @@ namespace DemonGameRules.code
             // 100杀：进阶增益（介于第一/第二梯队）
             var hundred_souls = CreateTrait("hundred_souls", "trait/hundred_souls", "mortal_coil_group");
             SetRarityCompat(hundred_souls, "uncommon");
-            SafeSetStat(hundred_souls.base_stats, strings.S.health, 2000f);
+            SafeSetStat(hundred_souls.base_stats, strings.S.health, 20000f);
             SafeSetStat(hundred_souls.base_stats, strings.S.damage, 200f);
             SafeSetStat(hundred_souls.base_stats, strings.S.armor, 12f);
             SafeSetStat(hundred_souls.base_stats, strings.S.critical_chance, 0.10f);
@@ -213,7 +213,7 @@ namespace DemonGameRules.code
             // 1000杀：强力增益（第三梯队）
             var thousand_kill = CreateTrait("thousand_kill", "trait/thousand_kill", "mortal_coil_group");
             SetRarityCompat(thousand_kill, "legendary");
-            SafeSetStat(thousand_kill.base_stats, strings.S.health, 8000f);
+            SafeSetStat(thousand_kill.base_stats, strings.S.health, 50000f);
             SafeSetStat(thousand_kill.base_stats, strings.S.damage, 800f);
             SafeSetStat(thousand_kill.base_stats, strings.S.armor, 35f);
             SafeSetStat(thousand_kill.base_stats, strings.S.critical_chance, 0.20f);
@@ -243,7 +243,7 @@ namespace DemonGameRules.code
             // 深渊低语：很小的通用加成（第一梯队-轻量；区域批量发时避免过猛）
             var whispers_from_the_abyss = CreateTrait("whispers_from_the_abyss", "trait/whispers_from_the_abyss", "destiny_group");
             SetRarityCompat(whispers_from_the_abyss, "legendary");
-            SafeSetStat(whispers_from_the_abyss.base_stats, strings.S.health, 5000f);
+            SafeSetStat(whispers_from_the_abyss.base_stats, strings.S.health, 50000f);
             SafeSetStat(whispers_from_the_abyss.base_stats, strings.S.damage, 500f);
             SafeSetStat(whispers_from_the_abyss.base_stats, strings.S.speed, 2f);
             SafeSetStat(whispers_from_the_abyss.base_stats, strings.S.stamina, 100f);
@@ -253,7 +253,7 @@ namespace DemonGameRules.code
             // 以战成道：靠击杀进位的强力（第二梯队）
             var path_of_battle = CreateTrait("path_of_battle", "trait/path_of_battle", "destiny_group");
             SetRarityCompat(path_of_battle, "legendary");
-            SafeSetStat(path_of_battle.base_stats, strings.S.health, 4000f);
+            SafeSetStat(path_of_battle.base_stats, strings.S.health, 40000f);
             SafeSetStat(path_of_battle.base_stats, strings.S.damage, 400f);
             SafeSetStat(path_of_battle.base_stats, strings.S.armor, 20f);
             SafeSetStat(path_of_battle.base_stats, strings.S.critical_chance, 0.15f);
@@ -269,7 +269,7 @@ namespace DemonGameRules.code
             // 不朽：偏防御与寿命（第三梯队）
             var ageless = CreateTrait("ageless", "trait/ageless", "beyond_mortality_group");
             SetRarityCompat(ageless, "legendary");
-            SafeSetStat(ageless.base_stats, strings.S.health, 6000f);
+            SafeSetStat(ageless.base_stats, strings.S.health, 60000f);
             SafeSetStat(ageless.base_stats, strings.S.damage, 200f);
             SafeSetStat(ageless.base_stats, strings.S.armor, 40f);
             SafeSetStat(ageless.base_stats, strings.S.speed, 5f);
@@ -281,7 +281,7 @@ namespace DemonGameRules.code
             // 肉身成圣：极稀有高阈值（第四梯队）
             var flesh_of_the_divine = CreateTrait("flesh_of_the_divine", "trait/flesh_of_the_divine", "beyond_mortality_group");
             SetRarityCompat(flesh_of_the_divine, "legendary");
-            SafeSetStat(flesh_of_the_divine.base_stats, strings.S.health, 12000f);
+            SafeSetStat(flesh_of_the_divine.base_stats, strings.S.health, 120000f);
             SafeSetStat(flesh_of_the_divine.base_stats, strings.S.damage, 1200f);
             SafeSetStat(flesh_of_the_divine.base_stats, strings.S.armor, 50f);
             SafeSetStat(flesh_of_the_divine.base_stats, strings.S.critical_chance, 0.30f);
@@ -295,7 +295,7 @@ namespace DemonGameRules.code
             // 杀戮化身：极稀有（第四梯队，偏进攻）
             var incarnation_of_slaughter = CreateTrait("incarnation_of_slaughter", "trait/incarnation_of_slaughter", "beyond_mortality_group");
             SetRarityCompat(incarnation_of_slaughter, "legendary");
-            SafeSetStat(incarnation_of_slaughter.base_stats, strings.S.health, 9000f);
+            SafeSetStat(incarnation_of_slaughter.base_stats, strings.S.health, 90000f);
             SafeSetStat(incarnation_of_slaughter.base_stats, strings.S.damage, 1500f); // 输出更猛
             SafeSetStat(incarnation_of_slaughter.base_stats, strings.S.armor, 35f);
             SafeSetStat(incarnation_of_slaughter.base_stats, strings.S.critical_chance, 0.35f);
@@ -309,7 +309,7 @@ namespace DemonGameRules.code
             // 蚀界者：顶级联动（第五梯队；强度天花板，慎重）
             var world_eater = CreateTrait("world_eater", "trait/world_eater", "beyond_mortality_group");
             SetRarityCompat(world_eater, "legendary");
-            SafeSetStat(world_eater.base_stats, strings.S.health, 20000f);
+            SafeSetStat(world_eater.base_stats, strings.S.health, 200000f);
             SafeSetStat(world_eater.base_stats, strings.S.damage, 2500f);
             SafeSetStat(world_eater.base_stats, strings.S.armor, 60f);
             SafeSetStat(world_eater.base_stats, strings.S.critical_chance, 0.40f);
@@ -326,7 +326,12 @@ namespace DemonGameRules.code
             // 飞升标记：为避免与“道主/飞升恶魔”叠爆，默认不给数值（你要也可加）
             var ascended_one = CreateTrait("ascended_one", "trait/ascended_one", "end_path_group");
             SetRarityCompat(ascended_one, "legendary");
-            // SafeSetStat(ascended_one.base_stats, strings.S.health,  500f); // 需要时再打开
+            SafeSetStat(ascended_demon.base_stats, strings.S.health, 10000f); // 生命 +3800：坦度略低于道主
+            SafeSetStat(ascended_demon.base_stats, strings.S.damage, 300f); // 伤害 +800：爆发更强
+            SafeSetStat(ascended_demon.base_stats, strings.S.armor, 20f); // 护甲 +20：适度减伤
+            SafeSetStat(ascended_demon.base_stats, strings.S.stamina, 300f);  // 体力 +600：强续航
+            SafeSetStat(ascended_demon.base_stats, strings.S.lifespan, 300f);  // 寿命 +600
+
             ForbidManualGive(ascended_one);
             AssetManager.traits.add(ascended_one);
 
@@ -334,6 +339,10 @@ namespace DemonGameRules.code
             var fallen_ascension = CreateTrait("fallen_ascension", "trait/fallen_ascension", "end_path_group");
             SetRarityCompat(fallen_ascension, "legendary");
             // （留空）
+            SafeSetStat(ascended_demon.base_stats, strings.S.health, 5000f); // 生命 +3800：坦度略低于道主
+            SafeSetStat(ascended_demon.base_stats, strings.S.damage, 600f); // 伤害 +800：爆发更强
+            SafeSetStat(ascended_demon.base_stats, strings.S.stamina, 300f);  // 体力 +600：强续航
+            SafeSetStat(ascended_demon.base_stats, strings.S.lifespan, 300f);  // 寿命 +600
             ForbidManualGive(fallen_ascension);
             AssetManager.traits.add(fallen_ascension);
 
@@ -353,8 +362,8 @@ namespace DemonGameRules.code
             // 永恒传奇：全图第一但非飞升（第三~三点五梯队）
             var eternal_legend = CreateTrait("eternal_legend", "trait/eternal_legend", "end_path_group");
             SetRarityCompat(eternal_legend, "legendary");
-            SafeSetStat(eternal_legend.base_stats, strings.S.health, 700f);
-            SafeSetStat(eternal_legend.base_stats, strings.S.damage, 90f);
+            SafeSetStat(eternal_legend.base_stats, strings.S.health, 5000f);
+            SafeSetStat(eternal_legend.base_stats, strings.S.damage, 150f);
             SafeSetStat(eternal_legend.base_stats, strings.S.armor, 5f);
             SafeSetStat(eternal_legend.base_stats, strings.S.critical_chance, 0.2f);
             SafeSetStat(eternal_legend.base_stats, strings.S.speed, 1f);
@@ -393,29 +402,29 @@ namespace DemonGameRules.code
             // C. 起步加成（攻击 +30，生命 +500）
             var tStarter = CreateTrait("rogue_starter_boost", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tStarter, "uncommon");
-            SafeSetStat(tStarter.base_stats, strings.S.damage, 30f);   // 低额外伤害
-            SafeSetStat(tStarter.base_stats, strings.S.health, 500f);  // 低额外生命
+            SafeSetStat(tStarter.base_stats, strings.S.damage, 60f);   // 低额外伤害
+            SafeSetStat(tStarter.base_stats, strings.S.health, 1500f);  // 低额外生命
      
             AssetManager.traits.add(tStarter);
 
             // D. 迅捷（移动速度 +3）
             var tSwift = CreateTrait("rogue_swift", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tSwift, "uncommon");
-            SafeSetStat(tSwift.base_stats, strings.S.speed, 5f); // 机动小提升
+            SafeSetStat(tSwift.base_stats, strings.S.speed, 15f); // 机动小提升
 
             AssetManager.traits.add(tSwift);
 
             // E. 灵锐（暴击率 +3%）
             var tKeen = CreateTrait("rogue_keen", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tKeen, "uncommon");
-            SafeSetStat(tKeen.base_stats, strings.S.critical_chance, 0.1f); // 3% 暴击
+            SafeSetStat(tKeen.base_stats, strings.S.critical_chance, 0.3f); // 3% 暴击
 
             AssetManager.traits.add(tKeen);
 
             // F. 坚毅（护甲 +8）
             var tTough = CreateTrait("rogue_tough", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tTough, "uncommon");
-            SafeSetStat(tTough.base_stats, strings.S.armor, 8f); // 小护甲
+            SafeSetStat(tTough.base_stats, strings.S.armor, 20f); // 小护甲
 
             AssetManager.traits.add(tTough);
 
@@ -436,14 +445,14 @@ namespace DemonGameRules.code
             // I. 轻斩（伤害 +80）
             var tLightstrike = CreateTrait("rogue_lightstrike", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tLightstrike, "uncommon");
-            SafeSetStat(tLightstrike.base_stats, strings.S.damage, 80f); // 稍强于 C，但仍属轻量
+            SafeSetStat(tLightstrike.base_stats, strings.S.damage, 150f); // 稍强于 C，但仍属轻量
 
             AssetManager.traits.add(tLightstrike);
 
             // J. 厚实（生命 +1000）
             var tGuarded = CreateTrait("rogue_guarded", "trait/daozhu", "rogue_light_group");
             SetRarityCompat(tGuarded, "uncommon");
-            SafeSetStat(tGuarded.base_stats, strings.S.health, 1000f); // 小坦克向
+            SafeSetStat(tGuarded.base_stats, strings.S.health, 5000f); // 小坦克向
 
             AssetManager.traits.add(tGuarded);
 
