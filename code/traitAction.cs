@@ -538,8 +538,7 @@ namespace DemonGameRules2.code
             }
 
         }
-            catch { }
-        }
+
 
         #endregion
 
