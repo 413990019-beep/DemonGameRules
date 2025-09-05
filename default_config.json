@@ -24,7 +24,7 @@
             "IconPath": "ui/icons/iconWar",
             "FloatVal": 30.0,
             "MinFloatVal": 5.0,
-            "MaxFloatVal": 200.0,
+            "MaxFloatVal": 2000.0,
             "Callback": "DemonGameRules2.code.traitAction:OnWarIntervalChanged"
         },
 
@@ -82,6 +82,23 @@
             "Tooltip": "LOG_DETAIL Description",
             "Callback": "DemonGameRules2.code.traitAction:OnTxtLogDetailSwitchChanged"
         },
+        {
+            "Id": "SPECTATE_ON_HIT",
+            "Type": "SWITCH",
+            "BoolVal": false,
+            "TextVal": "SPECTATE_ON_HIT",
+            "Tooltip": "SPECTATE_ON_HIT Description",
+            "Callback": "DemonGameRules2.code.traitAction:OnSpectateSwitchChanged"
+        },
+        {
+            "Id": "ALWAYS_HP_BARS",
+            "Type": "SWITCH",
+            "BoolVal": true,
+            "TextVal": "ALWAYS_HP_BARS",
+            "Tooltip": "ALWAYS_HP_BARS Description",
+            "Callback": "DemonGameRules2.code.traitAction:OnAlwaysHpBarChanged"
+        },
+
         {
             "Id": "RESET_LOOP",
             "Type": "SWITCH",

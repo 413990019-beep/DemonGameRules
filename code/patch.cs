@@ -57,6 +57,13 @@ namespace DemonGameRules.code
         #endregion
 
 
+        //镜头跟踪
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(MoveCamera), "LateUpdate")]
+        static void MoveCamera_LateUpdate_Postfix(MoveCamera __instance)
+        {
+            try { DemonGameRules2.code.traitAction.UpdateSpectatorTick(__instance); } catch { }
+        }
 
         // ===== 供 Update 调用的“新世界复位” =====
         private static void ResetStaticsForNewWorld()
@@ -115,6 +122,7 @@ namespace DemonGameRules.code
                     _lastWorldRefInPatch = World.world;
 
                     ResetStaticsForNewWorld();
+                    traitAction.ResetSpectatorForNewWorld();
 
                     string slotName = "Slot?";
                     try { int curSlot = SaveManager.getCurrentSlot(); if (curSlot >= 0) slotName = "Slot" + curSlot; } catch { }
@@ -345,7 +353,7 @@ namespace DemonGameRules.code
                     // 直接小额回复固定生命（不破上限）
                     // 你也可以改成按最大生命百分比：
                     // int heal = Mathf.RoundToInt(__instance.stats["health"] * 0.05f); // 5%
-                    int heal = 50;
+                    int heal = 500;
                     __instance.restoreHealth(heal);
                 }
 
@@ -362,6 +370,7 @@ namespace DemonGameRules.code
                     EnsureTrait(killer, "demon_mask", k >= 10);
                     EnsureTrait(killer, "demon_env_immunity", k >= 30);
                     EnsureTrait(killer, "demon_kill_bonus", k >= 10);
+                    EnsureTrait(killer, "rogue_heal_on_kill", k >= 5);
 
                     // 【新增2】拥有恶魔面具时，每次击杀 0.1% 概率随机获得一个“其他恶魔特质”
                     // 备注：只在还没拥有的恶魔特质里随机；一个不重复薅
@@ -639,6 +648,12 @@ namespace DemonGameRules.code
             BaseSimObject pAttacker)
         {
 
+            // 仅在开关开启时才尝试自动观战
+            if (DemonGameRules2.code.traitAction.SpectateOnHitEnabled)
+            {
+                try { DemonGameRules2.code.traitAction.TrySpectateOnGetHit(__instance, pAttacker); } catch { }
+            }
+
             // 仅在：目标拥有“恶魔免疫” + 伤害类型在拦截表 + 没有攻击者（环境伤害）时，100% 拦截
             if (!_isProcessingBlock
                 && __instance != null
@@ -664,17 +679,13 @@ namespace DemonGameRules.code
             if (__instance == null || __instance.data == null)
                 return true;
 
-            // 受击/攻击者击杀数
-            int victimKills = 0;
-            try { victimKills = __instance.data.kills; } catch { victimKills = 0; }
+            
 
-            int attackerKills = 0;
+           
             Actor attackerActor = pAttacker?.a;
-            try { attackerKills = attackerActor?.data?.kills ?? 0; } catch { attackerKills = 0; }
+           
 
-            // 噪声过小就别浪费 CPU
-            if (victimKills < 1 && attackerKills < 1)
-                return true;
+
 
             // 只有任一方拥有“恶魔面具”才触发
             bool demonEligible =
@@ -761,6 +772,10 @@ namespace DemonGameRules.code
 
             traitAction.TryMarkFavoriteByPower(__instance);
             traitAction.OnActorAgeTick(__instance);
+
+            if (__instance.hasTrait("bubble_defense")) __instance.removeTrait("bubble_defense");
+            if (__instance.hasTrait("bubble_defence")) __instance.removeTrait("bubble_defence");
+
             // 如果 age 是 float，稳妥点用 (age >= 1f && age < 2f)
             if (__instance.age == 1)
             {

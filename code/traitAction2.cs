@@ -19,6 +19,496 @@ namespace DemonGameRules2.code
     public static partial class traitAction
     {
 
+        // ===== DemonGameRules2.code.traitAction 内新增 =====
+
+        // ====== 摄像机观战（不依赖 UI 类）======
+        #region 观战管理（摄像机跟随版；每世界年仅触发一次）
+
+        private static bool _anchorActive = false; // 是否正在锚定尸体现场
+        private static Vector3 _anchorPos;         // 锚定坐标（尸体/最后坐标）
+        private static float _stickUntil = 5f;     // 在此时间点之前不允许切换
+
+        // 放到本文件顶部“常量/工具”区
+        private const string T_DEMON_MASK = "demon_mask";
+
+        private static void EnsureDemonMask(Actor a)
+        {
+            try
+            {
+                if (a != null && a.hasHealth() && !a.hasTrait("demon_mask"))
+                    a.addTrait("demon_mask");
+            }
+            catch
+            {
+                // 别吵，失败就算了
+            }
+        }
+
+        static void ArmDeathAnchor(Actor a, Transform camXform)
+        {
+            try
+            {
+                float z = camXform.position.z;
+                Vector3 pos;
+                try { var p = a.current_position; pos = new Vector3(p.x, p.y, z); }
+                catch { var t = a?.current_tile; pos = (t != null) ? new Vector3(t.pos.x, t.pos.y, z) : camXform.position; }
+                _anchorPos = pos;
+            }
+            catch { _anchorPos = camXform.position; }
+
+            _anchorActive = true;
+            // 一切切换都要受 _minStickSeconds 约束
+            _stickUntil = Mathf.Max(_lastSwitchTime + _minStickSeconds, Time.unscaledTime);
+        }
+
+
+        // 连续不在战斗多久后才允许切换（秒）
+        private static float _switchAfterNotFighting = 10.0f;
+        // 记录目标从“开始不在战斗”起的时间戳
+        private static float _notFightingSince = -1f;
+
+        // 切换的最小停留时间，避免过快切换（秒）
+        private static float _minStickSeconds = 10.0f;
+        // 最近一次完成切换的时间戳
+        private static float _lastSwitchTime = -999f;
+
+        // ====== 受击自动观察总开关（已接 default_config.json/回调）======
+        private static bool _spectateOnHitEnabled = false;
+        public static bool SpectateOnHitEnabled => _spectateOnHitEnabled;
+        public static void OnSpectateSwitchChanged(bool enabled)
+        {
+            _spectateOnHitEnabled = enabled;
+            UnityEngine.Debug.Log($" SpectateOnHit/受击自动观察 => {(_spectateOnHitEnabled ? "开启ON" : "关闭OFF")}");
+         
+        }
+
+        // 最近一次受击事件的双方与时间戳
+        private static Actor _lastHitAttacker;
+        private static Actor _lastHitVictim;
+        private static float _lastHitStamp;
+
+        public static void TrySpectateOnGetHit(Actor victim, BaseSimObject pAttacker)
+        {
+
+
+            // 记录最近一次战斗双方
+            try { _lastHitVictim = victim; } catch { _lastHitVictim = null; }
+            try { _lastHitAttacker = pAttacker?.a; } catch { _lastHitAttacker = null; }
+            _lastHitStamp = Time.unscaledTime;
+
+
+            if (!_spectateOnHitEnabled) return;
+            if (!SpectateAllowedThisYear()) return;
+
+            
+
+            Actor attacker = null;
+            try { attacker = pAttacker?.a; } catch { }
+
+            // 优先级：1) demon_mask 的攻击者 2) demon_mask 的受害者 3) 攻击者 4) 受害者
+            Actor pick = null;
+            try
+            {
+                if (attacker != null && attacker.hasHealth() && attacker.hasTrait("demon_mask")) pick = attacker;
+                else if (victim != null && victim.hasHealth() && victim.hasTrait("demon_mask")) pick = victim;
+                else if (attacker != null && attacker.hasHealth()) pick = attacker;
+                else if (victim != null && victim.hasHealth()) pick = victim;
+            }
+            catch { /* 没空吵架 */ }
+
+            if (pick == null) return;
+
+            long id = -1;
+            try { id = pick.data?.id ?? -1; } catch { }
+
+            // 同一年已经盯过同一个人了，就别抖腿
+            if (id > 0 && id == _lastSpectateTargetId && YearNow() == _lastSpectateYear) return;
+
+            // 同一年同一人就不抖腿，最后改为：
+            StartFollow(pick, toast: true, markYear: true);  // ← 带 markYear
+        }
+
+        public static void StartFollow(Actor a, bool toast = true, bool markYear = true)
+        {
+            if (a == null || !a.hasHealth() || World.world == null) return;
+            try { if (a.asset != null && a.asset.is_boat) return; } catch { }
+
+            EnsureDemonMask(a);
+
+            _anchorActive = false;                // ← 新增：开始跟随就取消尸体锚
+            _followTarget = a;
+            _followWorld = World.world;
+            _notFightingSince = -1f;
+            _lastSwitchTime = Time.unscaledTime;
+            if (markYear) MarkSpectated(a);
+        }
+
+
+        public static void StopFollow()
+        {
+            _followTarget = null;
+            _followWorld = null;
+            _camVel = Vector3.zero;
+            _anchorActive = false;   // ← 新增
+        }
+        // 年冷却 & 目标记忆
+        private static int _lastSpectateYear = -1;
+        private static long _lastSpectateTargetId = -1;
+
+        private static bool SpectateAllowedThisYear()
+        {
+            if (!Config.game_loaded || SmoothLoader.isLoading() || World.world == null) return false;
+
+            // 世界实例换了（读档/新局），允许立刻触发一次并复位年标记
+            if (!ReferenceEquals(_followWorld, World.world))
+            {
+                _followWorld = World.world;
+                _lastSpectateYear = YearNow() - 1;
+                _lastSpectateTargetId = -1;
+            }
+            return YearNow() > _lastSpectateYear;
+        }
+
+        private static void MarkSpectated(Actor a)
+        {
+            _lastSpectateYear = YearNow();
+            try { _lastSpectateTargetId = a?.data?.id ?? -1; } catch { _lastSpectateTargetId = -1; }
+        }
+
+
+        // 2) traitAction 内的跟随逻辑（只贴变化点）
+        // 状态
+        private static Actor _followTarget;
+        private static MapBox _followWorld;
+        private static Vector3 _camVel = Vector3.zero;
+        private const float _followSmooth = 0.18f;
+        private const float _moveMinDist = 0.25f;        // 小于这距离就不动，防抖
+        private static float _manualOverrideUntil = 0f;  // 玩家手动相机的让路时间戳
+
+        // 手动相机检测：有输入就让路 0.5 秒
+        static bool PlayerIsControllingCamera()
+        {
+            if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetMouseButton(2)) return true;
+            if (Mathf.Abs(Input.mouseScrollDelta.y) > 0.01f) return true;
+            // 兼容键盘移动（如果有绑定）
+            if (Mathf.Abs(Input.GetAxisRaw("Horizontal")) > 0.01f) return true;
+            if (Mathf.Abs(Input.GetAxisRaw("Vertical")) > 0.01f) return true;
+            return false;
+        }
+
+        // 每帧推进：用 LateUpdate 调，不和原生相机争执行时机
+        public static void UpdateSpectatorTick(MoveCamera mover)
+        {
+            if (!_spectateOnHitEnabled) return;
+            if (mover == null) return;
+            if (!Config.game_loaded || SmoothLoader.isLoading() || World.world == null) return;
+
+            // 世界切换或读档：停止跟随
+            if (!ReferenceEquals(_followWorld, World.world)) { StopFollow(); }
+
+            // 玩家手动操作时让路
+            if (PlayerIsControllingCamera()) _manualOverrideUntil = Time.unscaledTime + 0.5f;
+            if (Time.unscaledTime < _manualOverrideUntil) return;
+
+
+            // 无目标或目标挂了：不立刻跳人，按 _minStickSeconds 黏住现场
+            if (_followTarget == null || _followTarget.isRekt() || !_followTarget.hasHealth())
+            {
+                Transform camXform = GetCameraTransform(mover) ?? mover.transform;
+
+                // 首次检测到死亡/无效时，武装锚点
+                if (!_anchorActive) ArmDeathAnchor(_followTarget, camXform);
+
+                // 相机继续黏到锚点位置
+                Vector3 cur = camXform.position;
+                if ((_anchorPos - cur).sqrMagnitude >= _moveMinDist * _moveMinDist)
+                    camXform.position = Vector3.SmoothDamp(cur, _anchorPos, ref _camVel, _followSmooth);
+
+                // 在达成最小停留时间之前，绝不切换
+                if (Time.unscaledTime < _stickUntil) return;
+
+                // 允许切换了：挑替换目标（保持你原有优先级与冷却风格）
+                var replace = PickReplacementTarget(camXform);
+                if (replace != null)
+                {
+                    _anchorActive = false;
+                    StartFollow(replace, toast: true, markYear: false);
+                    _switchCooldownUntil = Time.unscaledTime + 2.0f;
+                }
+                else
+                {
+                    // 没找到合适的，过会儿再扫
+                    _nextScanTime = Time.unscaledTime + 0.75f;
+                }
+                return;
+            }
+
+
+            // 目标是否在战斗
+            bool isFighting = IsFightingSafe(_followTarget);
+
+            // 如果在战斗：清掉“不在战斗计时”，不允许任何换人
+            if (isFighting)
+            {
+                _notFightingSince = -1f;
+            }
+            else
+            {
+                // 第一次发现不在战斗，开始计时
+                if (_notFightingSince < 0f) _notFightingSince = Time.unscaledTime;
+
+                // 只有满足“连续不在战斗满2秒”且各种冷却满足才允许尝试换人
+                bool cooledScan = Time.unscaledTime >= _nextScanTime;
+                bool cooledSwitch = Time.unscaledTime >= _switchCooldownUntil;
+                bool stayedLong = (Time.unscaledTime - _lastSwitchTime) >= _minStickSeconds;
+                bool enoughIdle = (Time.unscaledTime - _notFightingSince) >= _switchAfterNotFighting;
+
+                // 如果当前跟随对象正好是最近受击双方之一，给它 2 秒面子再考虑换人
+                bool followIsLastHitGuy = ReferenceEquals(_followTarget, _lastHitAttacker) || ReferenceEquals(_followTarget, _lastHitVictim);
+                bool recentHitGrace = followIsLastHitGuy && (Time.unscaledTime - _lastHitStamp) < 2.0f;
+
+                if (enoughIdle && cooledScan && cooledSwitch && stayedLong && !recentHitGrace)
+                {
+                    Transform camXformTemp = GetCameraTransform(mover) ?? mover.transform;
+                    var replace = PickReplacementTarget(camXformTemp);  // 仍然优先 demon_mask 且在战斗
+                    if (replace != null && replace != _followTarget)
+                    {
+                        StartFollow(replace, toast: true, markYear: false);  // 不占用“每年一次”
+                        _switchCooldownUntil = Time.unscaledTime + 2.0f;     // 短冷却
+                    }
+                    _nextScanTime = Time.unscaledTime + 0.75f; // 稍微放慢扫描频率
+                }
+            }
+
+
+            // 选一个可用的相机 Transform（优先 mover.camera，再退回 mover.transform）
+            Transform camXform = GetCameraTransform(mover);
+            if (camXform == null) camXform = mover.transform;
+
+            // 目标坐标（多层兜底，拿不到就别动）
+            Vector3 targetPos = default;
+            bool gotTarget = false;
+
+            try
+            {
+                Vector2 p = _followTarget.current_position;
+                targetPos = new Vector3(p.x, p.y, camXform.position.z);
+                gotTarget = true;
+            }
+            catch { }
+
+            if (!gotTarget)
+            {
+                try
+                {
+                    var t = _followTarget.current_tile;
+                    if (t != null)
+                    {
+                        targetPos = new Vector3(t.pos.x, t.pos.y, camXform.position.z);
+                        gotTarget = true;
+                    }
+                }
+                catch { }
+            }
+
+            if (!gotTarget) return; // ← 防止 CS0165：拿不到就不动
+
+            // 距离很近就不动，免抖
+            Vector3 cur = camXform.position;
+            const float moveMinDist = _moveMinDist; // 你上面定义的 0.25f
+            if ((targetPos - cur).sqrMagnitude < moveMinDist * moveMinDist) return;
+
+            // 平滑跟随
+            camXform.position = Vector3.SmoothDamp(cur, targetPos, ref _camVel, _followSmooth);
+        }
+
+        private static float _nextScanTime;          // 下次允许扫描时间点
+        private static float _switchCooldownUntil;   // 切换后的冷却，避免频繁跳人
+
+        static bool IsFightingSafe(Actor a)
+        {
+            if (a == null) return false;
+            try
+            {
+                if (a.isRekt() || !a.hasHealth()) return false;
+                return a.isFighting();
+            }
+            catch
+            {
+                return true; // 出异常就当在战斗，防止误切
+            }
+        }
+
+        static bool IsBoat(Actor a)
+        {
+            try { return a != null && a.asset != null && a.asset.is_boat; } catch { return false; }
+        }
+
+
+        static Actor PickReplacementTarget(Transform camXform)
+        {
+            // 1) 最近 getHit 的双方，优先 demon_mask 且在打架
+            try
+            {
+                if (IsFightingSafe(_lastHitAttacker) && !IsBoat(_lastHitAttacker) && _lastHitAttacker.hasTrait("demon_mask")) return _lastHitAttacker;
+                if (IsFightingSafe(_lastHitVictim) && !IsBoat(_lastHitVictim) && _lastHitVictim.hasTrait("demon_mask")) return _lastHitVictim;
+                if (IsFightingSafe(_lastHitAttacker) && !IsBoat(_lastHitAttacker)) return _lastHitAttacker;
+                if (IsFightingSafe(_lastHitVictim) && !IsBoat(_lastHitVictim)) return _lastHitVictim;
+            }
+            catch { }
+
+
+            // 2) 在相机附近找正在打的 demon_mask
+            const float RADIUS = 80f;
+            Actor best = null;
+            float bestDist2 = float.MaxValue;
+
+            var mgr = World.world?.units; // ActorManager，可枚举但不可下标
+            if (mgr != null)
+            {
+                Vector3 c = camXform.position;
+
+                foreach (var u in mgr) // ← 改成 foreach，别再用 [i]
+                {
+
+                    // 🚫 候选里跳过船
+                    try { if (u != null && u.asset != null && u.asset.is_boat) continue; } catch { }
+
+                    if (!IsFightingSafe(u)) continue;
+
+                    float dx, dy;
+                    try
+                    {
+                        var p = u.current_position; dx = p.x - c.x; dy = p.y - c.y;
+                    }
+                    catch
+                    {
+                        var t = u.current_tile; if (t == null) continue;
+                        dx = t.pos.x - c.x; dy = t.pos.y - c.y;
+                    }
+
+                    float d2 = dx * dx + dy * dy;
+                    if (d2 > RADIUS * RADIUS) continue;
+
+                    bool demon = false; try { demon = u.hasTrait("demon_mask"); } catch { }
+
+                    if (best == null || (demon && !(HasDemonMask(best))) || d2 < bestDist2)
+                    {
+                        best = u; bestDist2 = d2;
+                        if (demon && d2 < 9f) break; // 足够近且是恶魔，直接收工
+                    }
+                }
+            }
+
+            if (best != null) return best;
+
+            // 3) 兜底：相机附近任意在打的
+            if (mgr != null)
+            {
+                Vector3 c = camXform.position;
+                float best2 = float.MaxValue;
+                foreach (var u in mgr) // ← 同理，foreach
+                {
+                    try { if (IsBoat(u)) continue; } catch { }   // ⬅️ 新增
+
+                    if (!IsFightingSafe(u)) continue;
+
+                    float dx, dy;
+                    try { var p = u.current_position; dx = p.x - c.x; dy = p.y - c.y; }
+                    catch { var t = u.current_tile; if (t == null) continue; dx = t.pos.x - c.x; dy = t.pos.y - c.y; }
+
+                    float d2 = dx * dx + dy * dy;
+                    if (d2 < best2) { best2 = d2; best = u; }
+                }
+            }
+
+            return best;
+        }
+
+        static bool HasDemonMask(Actor a)
+        {
+            try { return a != null && a.hasTrait("demon_mask"); } catch { return false; }
+        }
+
+
+
+        // 小工具：尽量拿到真正的相机 Transform
+        // 放字段区
+        private static Transform _cachedCamXform;
+        private static MoveCamera _cachedMover;
+
+        static Transform GetCameraTransform(MoveCamera mover)
+        {
+            if (mover == null) return null;
+            if (_cachedMover == mover && _cachedCamXform != null) return _cachedCamXform;
+
+            try
+            {
+                const BindingFlags F = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+                var prop = mover.GetType().GetProperty("camera", F);
+                var cam = prop?.GetValue(mover) as UnityEngine.Camera;
+                if (cam == null)
+                {
+                    var fld = mover.GetType().GetField("camera", F) ?? mover.GetType().GetField("cam", F);
+                    cam = fld?.GetValue(mover) as UnityEngine.Camera;
+                }
+                _cachedCamXform = (cam != null ? cam.transform : mover.transform);
+                _cachedMover = mover;
+                return _cachedCamXform;
+            }
+            catch { return mover.transform; }
+        }
+
+
+
+
+        //可选：被你“新世界复位”流程调用
+        public static void ResetSpectatorForNewWorld()
+        {
+            StopFollow();
+            _lastSpectateYear = -1;
+            _lastSpectateTargetId = -1;
+            _followWorld = null;
+            _anchorActive = false;   // ← 新增
+        }
+
+        #endregion
+
+        #region  血条
+
+        // 开关状态
+        private static bool _alwaysHpBars = true;
+        public static bool AlwaysHpBarsEnabled => _alwaysHpBars;
+
+        // 面板/配置回调
+        public static void OnAlwaysHpBarChanged(bool enabled)
+        {
+            _alwaysHpBars = enabled;
+            UnityEngine.Debug.Log($" Always HP Bars/血量常驻显示 => {(_alwaysHpBars ? "开启ON" : "关闭OFF")}");
+
+            // 确保 UGUI 画布存在，并设定排在其它 Overlay UI 下面
+            DemonGameRules2.code.DGR_HpOverlayUGUI.Ensure(sortingOrder: -200);
+
+            // 开/关
+            DemonGameRules2.code.DGR_HpOverlayUGUI.SetEnabled(enabled);
+
+            // （可选）统一你的样式 & 裁剪阈值
+            // DemonGameRules2.code.DGR_HpOverlayUGUI.SetStyle(width: 36f, height: 3f, yOffset: 3.5f);
+            // DemonGameRules2.code.DGR_HpOverlayUGUI.SetCullThresholds(orthoSize: 24f, pixelsPerUnit: 3.0f);
+        }
+
+        // 兼容你原来的“确保存在”调用点（比如在导播开关处同步开启血条）
+        internal static void EnsureHpOverlayExists()
+        {
+            DemonGameRules2.code.DGR_HpOverlayUGUI.Ensure(sortingOrder: -200);
+            DemonGameRules2.code.DGR_HpOverlayUGUI.SetEnabled(true);
+
+            // （可选）性能模式：分片绘制次级目标
+            // DemonGameRules2.code.DGR_HpOverlayUGUI.SetPerfProfile(true);
+        }
+
+        #endregion
+
         #region  亚种特质
         // —— 配置区：黑名单、核心包、附加包 ——
         private static readonly string[] _traitsToRemove = new string[]
@@ -219,7 +709,7 @@ namespace DemonGameRules2.code
 
         public static void OnWarIntervalChanged(float yearsFloat)
         {
-            int years = Mathf.Clamp(Mathf.RoundToInt(yearsFloat), 5, 200);
+            int years = Mathf.Clamp(Mathf.RoundToInt(yearsFloat), 5, 2000);
             _warIntervalYears = years;
             UnityEngine.Debug.Log($"强制宣战间隔 => {years} 年 (War Interval)");
 
@@ -551,8 +1041,9 @@ namespace DemonGameRules2.code
 
         #region   恶魔伤害系统（特质化）
 
+
         // === 恶魔系特质 ID（别改名，和上面 traits.Init 一致） ===
-        private const string T_DEMON_MASK = "demon_mask";
+        //private const string T_DEMON_MASK = "demon_mask";
         private const string T_DEMON_EVASION = "demon_evasion";
         private const string T_DEMON_REGEN = "demon_regen";
         private const string T_DEMON_AMPLIFY = "demon_amplify";
@@ -579,6 +1070,42 @@ namespace DemonGameRules2.code
         private const float DEMON_EVADE_CHANCE = 0.20f;  // 恶魔闪避 20%
         private const int MIN_DAMAGE = 1;
 
+        // ===== 恶魔AOE配置与实现（只伤单位，不改地形） =====
+        private const int DEMON_AOE_RADIUS_TILES = 15;    // 半径（格）
+        private const bool DEMON_AOE_HIT_FLYERS = true; // 是否命中飞行单位
+        private const bool DEMON_AOE_SHOW_FX = true; // 是否播放闪电FX
+        private static readonly TerraformOptions _demonAoeOpts = new TerraformOptions
+        {
+            applies_to_high_flyers = DEMON_AOE_HIT_FLYERS,
+            attack_type = AttackType.Other           // 攻击类型：通用，不影响地形
+        };
+
+        // 只对“单位”造成伤害的范围AOE，不改地形，不击退
+        private static void DemonAoeHit(WorldTile center, int radiusTiles, int damage, BaseSimObject byWho)
+        {
+            if (center == null || radiusTiles <= 0 || damage <= 0) return;
+
+            // 表现：仅FX，不调用任何 MapAction.damageWorld
+            if (DEMON_AOE_SHOW_FX)
+            {
+                string fx = radiusTiles >= 16 ? "fx_lightning_big" : (radiusTiles >= 10 ? "fx_lightning_medium" : "fx_lightning_small");
+                EffectsLibrary.spawnAtTile(fx, center, 0.35f);
+            }
+
+            var mb = MapBox.instance;
+            if (mb == null) return;
+
+            // 确保选项最新（可热改）
+            _demonAoeOpts.applies_to_high_flyers = DEMON_AOE_HIT_FLYERS;
+            _demonAoeOpts.attack_type = AttackType.Other;
+
+            // 不击退，只伤害；最后一个参数 false 表示不做额外地形处理
+            const float forceAmount = 0f;
+            const bool forceOut = true; // force=0 时无效
+            mb.applyForceOnTile(center, radiusTiles, forceAmount, forceOut, damage, null, byWho, _demonAoeOpts, false);
+        }
+
+
         // —— 统一入口：被 getHit 前缀调用 ——
         // 触发条件：双方任一拥有 demon_mask
         public static void ExecuteDamageExchange(BaseSimObject source, BaseSimObject target)
@@ -590,8 +1117,8 @@ namespace DemonGameRules2.code
                 if (source == null || !source.isActor() || !source.hasHealth()) return;
                 if (target == null || !target.isActor() || !target.hasHealth()) return;
 
-                Actor A = source.a; // A 视为“源”，先吃对手伤害，再反打
-                Actor B = target.a;
+                Actor B = source.a; // A 视为“源”，先吃对手伤害，再反打
+                Actor A = target.a;
 
                 if (A == null || B == null) return;
 
@@ -605,13 +1132,21 @@ namespace DemonGameRules2.code
                 _isProcessingExchange = true;
 
                 // ===== A 先吃一发来自 B 的伤害（可被 A 的“闪避”闪掉）=====
+
                 int dmgToA = CalculateDemonDamage(B, A, Bk);
 
                 bool aEvaded = Has(A, T_DEMON_EVASION) && UnityEngine.Random.value < DEMON_EVADE_CHANCE;
                 if (!aEvaded)
                 {
-                    try { _isProcessingHit = true; A.getHit(dmgToA, true, AttackType.Other, target, false, false, false); }
+                    DemonAoeHit(A.current_tile, DEMON_AOE_RADIUS_TILES, dmgToA, target); // 范围伤害：以 A 所在地块为中心，伤害来自 B
+                    try 
+                    {
+                        _isProcessingHit = true;
+                        
+                        A.getHit(dmgToA, true, AttackType.Other, target, false, false, false); 
+                    }
                     finally { _isProcessingHit = false; }
+
                 }
 
                 if (A.getHealth() <= 0) return;
@@ -634,7 +1169,14 @@ namespace DemonGameRules2.code
                 bool bEvaded = Has(B, T_DEMON_EVASION) && UnityEngine.Random.value < DEMON_EVADE_CHANCE;
                 if (!bEvaded)
                 {
-                    try { _isProcessingHit = true; B.getHit(dmgToB, true, AttackType.Other, source, false, false, false); }
+                    DemonAoeHit(B.current_tile, DEMON_AOE_RADIUS_TILES, dmgToB, source);// 范围伤害：以 B 所在地块为中心，伤害来自 A
+                    try 
+                    { 
+                        _isProcessingHit = true;
+                        
+                        B.getHit(dmgToB, true, AttackType.Other, source, false, false, false); 
+                    }
+
                     finally { _isProcessingHit = false; }
                 }
 
@@ -678,7 +1220,11 @@ namespace DemonGameRules2.code
             float weight = BASE_DMG_WEIGHT + (Has(from, T_DEMON_FRENZY) ? FRENZY_EXTRA_WEIGHT : 0f);
 
             // 3) 基础伤害：面板*权重 + 击杀直加
-            int baseDamage = Mathf.Max(MIN_DAMAGE, Mathf.RoundToInt(panelDmg * weight) + Mathf.Max(0, fromKills));
+            // 3) 基础伤害：面板*权重 + 击杀直加 + 固定额外200
+            int baseDamage = Mathf.Max(
+                MIN_DAMAGE,
+                Mathf.RoundToInt(panelDmg * weight) + Mathf.Max(0, fromKills) + 200
+            );
 
             // 4) 击杀倍率：持有“恶魔增幅”才启用，每 100 杀 +5%，封顶 +500%
             float mult = 1f;

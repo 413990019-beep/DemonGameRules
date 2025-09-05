@@ -25,6 +25,12 @@
     "END_PATH_GROUP": "终焉归途",
     "ROGUE_LIGHT_GROUP": "物品与技能",
 
+    "SPECTATE_ON_HIT": "战斗自动导播",
+    "SPECTATE_ON_HIT Description": "当单位触发受击时自动切换观战，优先锁定携带“恶魔面具”的相关单位。",
+    "ALWAYS_HP_BARS": "血条常驻",
+    "ALWAYS_HP_BARS Description": "总是显示单位血条。",
+
+
     "trait_group_daozhu_group": "道主",
     "trait_group_ascended_demon_group": "飞升恶魔",
     "trait_group_mortal_coil_group": "凡躯砺炼",
@@ -136,61 +142,61 @@
     "trait_rogue_kill_plus_one_desc": "每次击杀时，额外 +1 击杀数（轻量滚雪球）。",
     "trait_rogue_kill_plus_one_description": "每次击杀时，额外 +1 击杀数（轻量滚雪球）。",
     "trait_rogue_kill_plus_one_tooltip": "每次击杀时，额外 +1 击杀数（轻量滚雪球）。",
-    "trait_rogue_kill_plus_one_info": "每次击杀时，额外 +1 击杀数（轻量滚雪球）。（出生小记录获得）",
+    "trait_rogue_kill_plus_one_info": "每次击杀时，额外 +1 击杀数（轻量滚雪球）。（出生小几率获得）",
 
     "trait_rogue_kill_lucky10": "幸运劫掠",
     "trait_rogue_kill_lucky10_desc": "击杀时 1% 概率额外 +10 击杀数（偶尔暴富）。",
     "trait_rogue_kill_lucky10_description": "击杀时 1% 概率额外 +10 击杀数（偶尔暴富）。",
     "trait_rogue_kill_lucky10_tooltip": "击杀时 1% 概率额外 +10 击杀数（偶尔暴富）。",
-    "trait_rogue_kill_lucky10_info": "击杀时 1% 概率额外 +10 击杀数（偶尔暴富）。（出生小记录获得）",
+    "trait_rogue_kill_lucky10_info": "击杀时 1% 概率额外 +10 击杀数（偶尔暴富）。（出生小几率获得）",
 
     "trait_rogue_starter_boost": "起步加成",
     "trait_rogue_starter_boost_desc": "开局获得小幅生命与攻击加成。",
     "trait_rogue_starter_boost_description": "开局获得小幅生命与攻击加成。",
     "trait_rogue_starter_boost_tooltip": "开局获得小幅生命与攻击加成。",
-    "trait_rogue_starter_boost_info": "开局获得小幅生命与攻击加成。（出生小记录获得）",
+    "trait_rogue_starter_boost_info": "开局获得小幅生命与攻击加成。（出生小几率获得）",
 
     "trait_rogue_swift": "迅捷",
     "trait_rogue_swift_desc": "移动速度略微提升。",
     "trait_rogue_swift_description": "移动速度略微提升。",
     "trait_rogue_swift_tooltip": "移动速度略微提升。",
-    "trait_rogue_swift_info": "移动速度略微提升。（出生小记录获得）",
+    "trait_rogue_swift_info": "移动速度略微提升。（出生小几率获得）",
 
     "trait_rogue_keen": "灵锐",
     "trait_rogue_keen_desc": "暴击率略微提升。",
     "trait_rogue_keen_description": "暴击率略微提升。",
     "trait_rogue_keen_tooltip": "暴击率略微提升。",
-    "trait_rogue_keen_info": "暴击率略微提升。（出生小记录获得）",
+    "trait_rogue_keen_info": "暴击率略微提升。（出生小几率获得）",
 
     "trait_rogue_tough": "坚毅",
     "trait_rogue_tough_desc": "护甲略微提升。",
     "trait_rogue_tough_description": "护甲略微提升。",
     "trait_rogue_tough_tooltip": "护甲略微提升。",
-    "trait_rogue_tough_info": "护甲略微提升。（出生小记录获得）",
+    "trait_rogue_tough_info": "护甲略微提升。（出生小几率获得）",
 
     "trait_rogue_enduring": "持久",
     "trait_rogue_enduring_desc": "体力上限略微提升。",
     "trait_rogue_enduring_description": "体力上限略微提升。",
     "trait_rogue_enduring_tooltip": "体力上限略微提升。",
-    "trait_rogue_enduring_info": "体力上限略微提升。（出生小记录获得）",
+    "trait_rogue_enduring_info": "体力上限略微提升。（出生小几率获得）",
 
     "trait_rogue_longlife": "长寿",
     "trait_rogue_longlife_desc": "自然寿命提升。",
     "trait_rogue_longlife_description": "自然寿命提升。",
     "trait_rogue_longlife_tooltip": "自然寿命提升。",
-    "trait_rogue_longlife_info": "自然寿命提升。（出生小记录获得）",
+    "trait_rogue_longlife_info": "自然寿命提升。（出生小几率获得）",
 
     "trait_rogue_lightstrike": "轻斩",
     "trait_rogue_lightstrike_desc": "基础伤害小幅提升。",
     "trait_rogue_lightstrike_description": "基础伤害小幅提升。",
     "trait_rogue_lightstrike_tooltip": "基础伤害小幅提升。",
-    "trait_rogue_lightstrike_info": "基础伤害小幅提升。（出生小记录获得）",
+    "trait_rogue_lightstrike_info": "基础伤害小幅提升。（出生小几率获得）",
 
     "trait_rogue_guarded": "厚实",
     "trait_rogue_guarded_desc": "生命上限小幅提升。",
     "trait_rogue_guarded_description": "生命上限小幅提升。",
     "trait_rogue_guarded_tooltip": "生命上限小幅提升。",
-    "trait_rogue_guarded_info": "生命上限小幅提升。（出生小记录获得）",
+    "trait_rogue_guarded_info": "生命上限小幅提升。（出生小几率获得）",
 
     "trait_demon_mask": "恶魔面具",
     "trait_demon_mask_desc": "拥有该特质才会触发恶魔伤害系统。",
@@ -264,11 +270,11 @@
     "trait_demon_kill_bonus_info": "成长型特质，数值随击杀累积。（击杀数大于10时自动获得）",
 
 
-    "trait_rogue_heal_on_kill": "击杀回春",
-    "trait_rogue_heal_on_kill_desc": "击杀后回复少量生命。",
-    "trait_rogue_heal_on_kill_description": "击杀后回复少量生命。",
-    "trait_rogue_heal_on_kill_tooltip": "击杀后回复少量生命。",
-    "trait_rogue_heal_on_kill_info": "击杀后回复少量生命。（击杀时1%几率获得）"
+    "trait_rogue_heal_on_kill": "恶魔印记",
+    "trait_rogue_heal_on_kill_desc": "击杀后回复500生命。",
+    "trait_rogue_heal_on_kill_description": "击杀后回复500生命。",
+    "trait_rogue_heal_on_kill_tooltip": "击杀后回复500生命。",
+    "trait_rogue_heal_on_kill_info": "击杀后回复500生命。（击杀数大于5时自动获得）"
 
 
 

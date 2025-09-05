@@ -953,7 +953,7 @@ namespace DemonGameRules2.code
 
 
 
-        private static int _warIntervalYears = 30; // 默认30，可被 OnWarIntervalChanged 修改
+        private static int _warIntervalYears = 100; // 默认30，可被 OnWarIntervalChanged 修改
         private static int lastWarYear = 0;
 
         private static int lastUnitSpawnYear = 0; // 新增：跟踪上次生成单位的年份
@@ -1006,19 +1006,22 @@ namespace DemonGameRules2.code
                 UpdatePowerLeaderboard();
                 lastPowerUpdateYear = currentYear - (currentYear % POWER_UPDATE_INTERVAL_YEARS);
             }
+
+            // 30 年一次的强制宣战/叛乱
+            if (!freezeProgressiveEvents && currentYear >= lastWarYear + _warIntervalYears)
+            {
+                TryRandomWar();
+                lastWarYear = currentYear - (currentYear % _warIntervalYears);
+            }
+
+            if (!freezeProgressiveEvents)
+            {
+                CheckEvilRedMageEvent(currentYear);
+            }
+
             if (isDemonMode)
             {
-                // 30 年一次的强制宣战/叛乱
-                if (!freezeProgressiveEvents && currentYear >= lastWarYear + _warIntervalYears)
-                {
-                    TryRandomWar();
-                    lastWarYear = currentYear - (currentYear % _warIntervalYears);
-                }
-
-                if (!freezeProgressiveEvents)
-                {
-                    CheckEvilRedMageEvent(currentYear);
-                }
+                
 
             }
             else
