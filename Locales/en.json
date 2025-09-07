@@ -26,8 +26,11 @@
     "END_PATH_GROUP": "End of the Path",
     "ROGUE_LIGHT_GROUP": "Items & Skills",
 
-    "SPECTATE_ON_HIT": "Auto Spectate on Hit",
-    "SPECTATE_ON_HIT Description": "Automatically switch to spectate when a unit is hit, prioritizing units carrying the “Demon Mask.”",
+    "SPECTATE_ON_HIT": "Demon's Gaze",
+    "SPECTATE_ON_HIT Description": "When a unit is attacked, it comes under the Demon's Gaze and is given a 'demon mask'.",
+    "SPECTATE_AGGRO": "Demon Showcase",
+    "SPECTATE_AGGRO Description": "Units under the Demon's Gaze will provoke nearby targets, putting on their best performance to please you.",
+
     "ALWAYS_HP_BARS": "Always Show HP Bars",
     "ALWAYS_HP_BARS Description": "Always display unit HP bars.",
 

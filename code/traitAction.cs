@@ -1250,6 +1250,8 @@ namespace DemonGameRules2.code
                                       $"<color=#FFCC00>汇聚于{GreatContestArenaCity.name}，夺取道途机缘！</color>"; // CHANGED
                 }
                 NotificationHelper.ShowThisMessage(notificationText);
+
+                LockContestCamera();
             }
             catch (Exception ex)
             {
@@ -1433,6 +1435,7 @@ namespace DemonGameRules2.code
                 IsGreatContestActive = false;
                 GreatContestants.Clear();
                 GreatContestArenaCity = null;
+                UnlockContestCamera();
             }
         }
 

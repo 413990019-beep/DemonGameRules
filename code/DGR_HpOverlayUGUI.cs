@@ -19,7 +19,7 @@ namespace DemonGameRules2.code
         private static float _barHeight = 3f;
         private static float _worldYOffset = 3.5f;
 
-        private static float _hideAboveOrthoSize = 24f;
+        private static float _hideAboveOrthoSize = 35f;
         private static float _minPixelsPerWorldUnit = 3.0f;
 
         private static bool _perfProfile = true;

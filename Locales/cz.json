@@ -25,8 +25,14 @@
     "END_PATH_GROUP": "终焉归途",
     "ROGUE_LIGHT_GROUP": "物品与技能",
 
-    "SPECTATE_ON_HIT": "战斗自动导播",
-    "SPECTATE_ON_HIT Description": "当单位触发受击时自动切换观战，优先锁定携带“恶魔面具”的相关单位。",
+    "SPECTATE_ON_HIT": "恶魔的凝视",
+    "SPECTATE_ON_HIT Description": "当单位被攻击时会被恶魔凝视，并且被戴上“恶魔面具”····",
+
+    "SPECTATE_AGGRO": "恶魔·演出",
+    "SPECTATE_AGGRO Description": "被恶魔凝视的单位会去挑衅周围的人，拿出他最好的表现来取悦你",
+
+
+
     "ALWAYS_HP_BARS": "血条常驻",
     "ALWAYS_HP_BARS Description": "总是显示单位血条。",
 
@@ -202,7 +208,7 @@
     "trait_demon_mask_desc": "拥有该特质才会触发恶魔伤害系统。",
     "trait_demon_mask_description": "拥有该特质才会触发恶魔伤害系统。",
     "trait_demon_mask_tooltip": "拥有该特质才会触发恶魔伤害系统。",
-    "trait_demon_mask_info": "拥有该特质才会触发恶魔伤害系统。（击杀数大于10时自动获得）",
+    "trait_demon_mask_info": "免疫眩晕，拥有该特质才会触发恶魔伤害系统。（击杀数大于10时自动获得）",
 
     "trait_demon_evasion": "恶魔闪避",
     "trait_demon_evasion_desc": "有20%几率闪避恶魔伤害系统内的命中。",

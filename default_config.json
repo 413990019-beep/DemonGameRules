@@ -91,6 +91,14 @@
             "Callback": "DemonGameRules2.code.traitAction:OnSpectateSwitchChanged"
         },
         {
+            "Id": "SPECTATE_AGGRO",
+            "Type": "SWITCH",
+            "BoolVal": true,
+            "TextVal": "SPECTATE_AGGRO",
+            "Tooltip": "SPECTATE_AGGRO Description",
+            "Callback": "DemonGameRules2.code.traitAction:OnSpectateAggroSwitchChanged"
+        },
+        {
             "Id": "ALWAYS_HP_BARS",
             "Type": "SWITCH",
             "BoolVal": true,

@@ -388,6 +388,17 @@ namespace DemonGameRules.code
                                 "demon_bulwark",     // 恶魔壁障（单击上限）
                                 "demon_frenzy",      // 恶魔狂热（面板权重+）
                                 "demon_execute",     // 恶魔斩首（处决加成）
+                                "rogue_kill_plus_one",     // 
+                                "rogue_kill_lucky10",     // 
+                                "rogue_starter_boost",     // 
+                                "rogue_swift",     // 
+                                "rogue_keen",     // 
+                                "rogue_tough",     // 
+                                "rogue_enduring",     // 
+                                "rogue_longlife",     // 
+                                "rogue_lightstrike",     // 
+                                "rogue_guarded",     // 
+                                "rogue_heal_on_kill",     // 
                                 "demon_bloodthirst"  // 恶魔嗜血（回血上限+）
                             };
 
@@ -628,7 +639,7 @@ namespace DemonGameRules.code
             AttackType.AshFever,      // 灰热病
             AttackType.Plague,     // 瘟疫攻击
             AttackType.Metamorphosis,     // 瘟疫攻击
-            AttackType.Starvation,     // 瘟疫攻击
+            AttackType.Starvation,     // 饥饿
             AttackType.Explosion,  // 爆炸攻击
             AttackType.Infection,  // 感染攻击
             AttackType.Tumor,      // 肿瘤攻击
@@ -636,7 +647,10 @@ namespace DemonGameRules.code
             AttackType.Drowning,   // 溺水攻击
             AttackType.Gravity,   // 溺水攻击
             AttackType.Fire,       // 火焰攻击
-            AttackType.None,       
+            //AttackType.Age,       // 年龄杀
+            AttackType.Other,       // 
+            AttackType.Smile,       // 
+            AttackType.None,      
             AttackType.Acid        // 酸液攻击
         };
         [HarmonyPrefix]
@@ -657,7 +671,6 @@ namespace DemonGameRules.code
             // 仅在：目标拥有“恶魔免疫” + 伤害类型在拦截表 + 没有攻击者（环境伤害）时，100% 拦截
             if (!_isProcessingBlock
                 && __instance != null
-                && __instance.hasHealth()
                 && __instance.hasTrait(TRAIT_DEMON_ENV_IMMUNITY)     // ← 新增门槛
                 && pAttacker == null
                 && _blockedAttackTypes.Contains(pAttackType))
@@ -815,9 +828,133 @@ namespace DemonGameRules.code
         //private static float normalKillLogTimer = 0f;  // 时间窗口计时器
         //private static int normalKillLogCount = 0;     // 时间窗口内日志计数
 
+        // 恶魔免疫特质 ID（按你项目实际替换）
+        private const string T_DEMON_IMMUNITY = "demon_env_immunity";
+
+        // 用于让其它死亡 Postfix/日志跳过这次“假死”
+        internal static bool _skipDeathLogThisFrame;
+
+        private static readonly HashSet<long> _rebirthIds = new();
+
+        /* ===============================
+         * 1) 前缀：无凶手时原地同物种复活
+         * =============================== */
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(Actor), nameof(Actor.checkDeath))]
+        [HarmonyPriority(Priority.First)]
+        static bool RebirthAsSameSpecies_WhenNoKiller_Prefix(Actor __instance)
+        {
+            try
+            {
+
+
+
+                // 仅“将死”瞬间：血≤0 且 仍标记为存活
+                if (__instance == null || __instance.hasHealth() || !__instance.isAlive())
+                    return true;
+
+                // 必须在地图有效区域且脚下有瓦片
+                if (!__instance.inMapBorder() || __instance.current_tile == null)
+                    return true;
+
+                // 可选：排除老死/饥饿等自然死亡
+                if (__instance._last_attack_type == AttackType.Age || __instance._last_attack_type == AttackType.Starvation)
+                    return true;
+
+                // 没有免疫特质，走原版
+                if (!__instance.hasTrait(T_DEMON_IMMUNITY))
+                    return true;
+
+                // 原版凶手推断
+                Actor killer = null;
+                var last = __instance.attackedBy;
+                if (last != null && !last.isRekt() && last.isActor() && last != __instance)
+                    killer = last.a;
+
+                // 有凶手，走原版；无凶手触发复活
+                if (killer != null)
+                    return true;
+
+                _skipDeathLogThisFrame = true;
+
+                long _id = __instance?.data?.id ?? -1;
+                if (_id > 0) _rebirthIds.Add(_id);
+
+                var newborn = CloneAsSelf(__instance);
+                if (newborn == null)
+                {
+                    _skipDeathLogThisFrame = false; // 失败就别屏蔽日志
+                    return true;                     // 回退到原版死亡
+                }
+
+
+
+                // 成功复活：跳过原版 checkDeath（不会die/不会触发Postfix）
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[DGR] RebirthAsSameSpecies failed: {ex}");
+                return true;
+            }
+        }
+
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(Actor), "countDeath")]
+        static bool BlockOrRewriteCountDeath_ForRebirth(Actor __instance, AttackType pType)
+        {
+            try
+            {
+                long id = __instance?.data?.id ?? -1;
+                if (id > 0 && _rebirthIds.Remove(id))
+                {
+                    // ========= 方案 A：完全不计死亡（默认） =========
+                    // 直接 return false 跳过整个 countDeath，
+                    // 不会增加 creaturesDied / map_stats.deaths / 各组织 deaths。
+                    // return false;
+
+                    // ========= 方案 B：计作 Metamorphosis（把上面的 return false 注释掉，改成下面这块） =========
+                    // var ms = World.world?.map_stats;
+                    // if (ms != null) ms.metamorphosis += 1L;
+                    //
+                    // // 如果你希望城邦/家族/语言/宗教/王国等也记 metamorphosis，可以按需加：
+                    // __instance.city?.increaseDeaths(AttackType.Metamorphosis);
+                    // __instance.clan?.increaseDeaths(AttackType.Metamorphosis);
+                    // __instance.culture?.increaseDeaths(AttackType.Metamorphosis);
+                    // __instance.family?.increaseDeaths(AttackType.Metamorphosis);
+                    // __instance.language?.increaseDeaths(AttackType.Metamorphosis);
+                    // __instance.religion?.increaseDeaths(AttackType.Metamorphosis);
+                    // if (__instance.isKingdomCiv())
+                    //     __instance.kingdom?.increaseDeaths(AttackType.Metamorphosis);
+                    //
+                    // return false;
+
+                    return false; // ← 默认走方案 A
+                }
+            }
+            catch (System.Exception ex)
+            {
+                UnityEngine.Debug.LogError($"[DGR] countDeath rewrite failed: {ex}");
+            }
+            return true; // 非复活场景：照常统计死亡
+        }
+
+
         [HarmonyPostfix, HarmonyPatch(typeof(Actor), "checkDeath")]
         public static void Actor_checkDeath_Postfix(Actor __instance)
         {
+
+            // 这次是“假死复活”，跳过全部日志/榜单
+            if (_skipDeathLogThisFrame)
+            {
+                _skipDeathLogThisFrame = false;
+                return;
+            }
+
+            // 原版真正死亡才记录
+            if (__instance == null) return;
+
             // 攻击者检测（注意空引用保护）
             Actor attacker = null;
             AttackType deathCause = AttackType.None;
@@ -827,6 +964,7 @@ namespace DemonGameRules.code
                 attacker = lastHit.a;
                 deathCause = __instance._last_attack_type;
             }
+
 
 
 
@@ -1127,20 +1265,56 @@ namespace DemonGameRules.code
 
                
             }
-            #endregion
-
-
         }
+             #endregion
+
+        private static Actor CloneAsSelf(Actor original)
+        {
+            if (original == null || original.current_tile == null) return null;
+
+            string unitId = original.asset != null ? original.asset.id : null;
+            if (string.IsNullOrEmpty(unitId))
+                return null; // 没有资产ID就别复活，免得生出奇怪生物
+
+            WorldTile tile = original.current_tile;
+
+            original.finishStatusEffect("cursed");
+            original.removeTrait("infected");
+            original.removeTrait("mush_spores");
+            original.removeTrait("tumor_infection");
+            original.removeTrait("peaceful");
+            original.restoreHealth(999);
+
+            var newborn = World.world.units.createNewUnit(
+                unitId, tile,
+                false, 0f,
+                null, null,
+                false, false, false
+            );
+
+            if (newborn == null) return null;
+
+            ActorTool.copyUnitToOtherUnit(original, newborn, true);
+
+            EffectsLibrary.spawn("fx_spawn", tile, null, null, 0f, -1f, -1f, null);
+            ActionLibrary.removeUnit(original);
+
+
+            return newborn; // 不 setTransformed
+        }
+
+
+
         #endregion
 
 
-        
 
 
 
 
 
-        
+
+
 
     }
 }
